@@ -123,20 +123,26 @@ export async function GET(request: NextRequest) {
     const cookieValue = JSON.stringify(sessionData)
     console.log("[raindrop][callback] Setting session cookie:", cookieValue.substring(0, 100))
 
-    // cookies() APIを使ってCookieを設定（Next.js App Routerで推奨）
-    const cookieStore = await cookies()
-    cookieStore.set("raindrop-session", cookieValue, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      path: "/",
-    })
+    // リダイレクトレスポンスを作成
+    const response = NextResponse.redirect(new URL("/dashboard", request.url))
 
-    console.log("[raindrop][callback] Cookie set, redirecting to /dashboard")
+    // Set-Cookieヘッダーを直接設定（Vercel互換性のため）
+    const isProduction = process.env.NODE_ENV === "production"
+    const cookieString = [
+      `raindrop-session=${encodeURIComponent(cookieValue)}`,
+      `Path=/`,
+      `Max-Age=${60 * 60 * 24 * 7}`,
+      `HttpOnly`,
+      `SameSite=Lax`,
+      isProduction ? `Secure` : null,
+    ]
+      .filter(Boolean)
+      .join("; ")
 
-    // リダイレクト
-    return NextResponse.redirect(new URL("/dashboard", request.url))
+    response.headers.set("Set-Cookie", cookieString)
+    console.log("[raindrop][callback] Set-Cookie header:", cookieString.substring(0, 100))
+
+    return response
   } catch (error) {
     console.error("[raindrop][callback] Error:", error)
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
