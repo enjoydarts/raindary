@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { cookies } from "next/headers"
 import { db } from "@/db"
 import { users } from "@/db/schema"
 import { encrypt } from "@/lib/crypto"
@@ -112,7 +113,6 @@ export async function GET(request: NextRequest) {
     console.log("[raindrop][callback] User saved to database")
 
     // Step 4: セッションを作成
-    // シンプルなJWTベースのセッションを作成
     const sessionData = {
       userId: raindropUser._id.toString(),
       email: raindropUser.email,
@@ -120,23 +120,23 @@ export async function GET(request: NextRequest) {
       image: raindropUser.avatar || null,
     }
 
-    const response = NextResponse.redirect(new URL("/dashboard", request.url))
-
-    // セッションCookieを設定
     const cookieValue = JSON.stringify(sessionData)
     console.log("[raindrop][callback] Setting session cookie:", cookieValue.substring(0, 100))
 
-    response.cookies.set("raindrop-session", cookieValue, {
+    // cookies() APIを使ってCookieを設定（Next.js App Routerで推奨）
+    const cookieStore = await cookies()
+    cookieStore.set("raindrop-session", cookieValue, {
       httpOnly: true,
       secure: true,
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: "/",
-      domain: undefined, // ドメインを明示的に指定しない
     })
 
     console.log("[raindrop][callback] Cookie set, redirecting to /dashboard")
-    return response
+
+    // リダイレクト
+    return NextResponse.redirect(new URL("/dashboard", request.url))
   } catch (error) {
     console.error("[raindrop][callback] Error:", error)
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
