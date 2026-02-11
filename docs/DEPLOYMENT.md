@@ -16,7 +16,7 @@
 1. [supabase.com](https://supabase.com) でアカウント作成
 2. 「New Project」をクリック
 3. プロジェクト情報を入力：
-   - Project name: `raindrop-ai`
+   - Project name: `raindary`
    - Database Password: 強力なパスワードを生成（保存しておく）
    - Region: 最寄りのリージョンを選択（例: Tokyo）
 
@@ -47,7 +47,7 @@ npm run db:push
 
 1. [inngest.com](https://www.inngest.com) でアカウント作成
 2. 「Create App」をクリック
-3. アプリ名を入力（例: `raindrop-ai`）
+3. アプリ名を入力（例: `raindary`）
 
 ### 2.2 キーの取得
 

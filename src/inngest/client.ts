@@ -31,6 +31,6 @@ export type Events = {
  * Inngestクライアント
  */
 export const inngest = new Inngest({
-  id: "raindrop-ai",
+  id: "raindary",
   schemas: new EventSchemas().fromRecord<Events>(),
 })

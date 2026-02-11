@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Raindrop AI - 自分語り要約",
+  title: "Raindary - 自分語り要約",
   description: "Raindrop.ioの記事をAI要約するツール",
 }
 

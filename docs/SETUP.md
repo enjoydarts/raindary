@@ -70,7 +70,7 @@ https://console.anthropic.com/ にアクセスしてログインします。
 
 1. 左メニューから「API Keys」を選択
 2. 「Create Key」ボタンをクリック
-3. キー名を入力（例: `raindrop-ai-local`）
+3. キー名を入力（例: `raindary-local`）
 4. 「Create Key」をクリック
 
 ### 3. APIキーをコピー
@@ -123,7 +123,7 @@ AUTH_RAINDROP_ID=<Client ID>
 AUTH_RAINDROP_SECRET=<Client Secret>
 
 # Database (ローカル開発環境)
-DATABASE_URL=postgresql://postgres:postgres@db:5432/raindrop_ai
+DATABASE_URL=postgresql://postgres:postgres@db:5432/raindary
 
 # Inngest (ローカル開発環境)
 INNGEST_EVENT_KEY=local_dev_key
@@ -171,10 +171,10 @@ docker compose up --build
 起動には数分かかります。以下のログが表示されれば成功です:
 
 ```
-raindrop_ai-db-1        | database system is ready to accept connections
-raindrop_ai-extract-1   | Uvicorn running on http://0.0.0.0:8000
-raindrop_ai-inngest-1   | Inngest dev server running
-raindrop_ai-web-1       | ✓ Ready in 3.2s
+raindary-db-1        | database system is ready to accept connections
+raindary-extract-1   | Uvicorn running on http://0.0.0.0:8000
+raindary-inngest-1   | Inngest dev server running
+raindary-web-1       | ✓ Ready in 3.2s
 ```
 
 ### 3. マイグレーションを実行
@@ -218,10 +218,10 @@ docker compose ps
 
 ```
 NAME                    STATUS
-raindrop_ai-db-1        Up (healthy)
-raindrop_ai-extract-1   Up (healthy)
-raindrop_ai-inngest-1   Up
-raindrop_ai-web-1       Up
+raindary-db-1        Up (healthy)
+raindary-extract-1   Up (healthy)
+raindary-inngest-1   Up
+raindary-web-1       Up
 ```
 
 ### 2. Webアプリにアクセス
