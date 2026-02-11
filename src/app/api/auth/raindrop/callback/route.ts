@@ -126,21 +126,20 @@ export async function GET(request: NextRequest) {
     // リダイレクトレスポンスを作成
     const response = NextResponse.redirect(new URL("/dashboard", request.url))
 
-    // Set-Cookieヘッダーを直接設定（Vercel互換性のため）
-    const isProduction = process.env.NODE_ENV === "production"
-    const cookieString = [
-      `raindrop-session=${encodeURIComponent(cookieValue)}`,
-      `Path=/`,
-      `Max-Age=${60 * 60 * 24 * 7}`,
-      `HttpOnly`,
-      `SameSite=Lax`,
-      isProduction ? `Secure` : null,
-    ]
-      .filter(Boolean)
-      .join("; ")
+    // ResponseにCookieを設定（NextResponseのAPIを使用）
+    response.cookies.set({
+      name: "raindrop-session",
+      value: cookieValue,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7,
+      path: "/",
+    })
 
-    response.headers.set("Set-Cookie", cookieString)
-    console.log("[raindrop][callback] Set-Cookie header:", cookieString.substring(0, 100))
+    console.log("[raindrop][callback] Cookie set via response.cookies.set")
+    console.log("[raindrop][callback] Cookie value:", cookieValue.substring(0, 100))
+    console.log("[raindrop][callback] Headers:", JSON.stringify(Object.fromEntries(response.headers)))
 
     return response
   } catch (error) {
