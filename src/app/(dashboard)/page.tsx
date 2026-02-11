@@ -1,12 +1,26 @@
-import { auth } from "../../../auth"
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 import { db } from "@/db"
 import { summaries, apiUsage } from "@/db/schema"
 import { eq, desc, gte, sum, and } from "drizzle-orm"
 import Link from "next/link"
 
 export default async function DashboardPage() {
-  const session = await auth()
-  const userId = session!.user!.id
+  const cookieStore = await cookies()
+  const sessionCookie = cookieStore.get("raindrop-session")
+
+  if (!sessionCookie) {
+    redirect("/login")
+  }
+
+  let session
+  try {
+    session = JSON.parse(sessionCookie.value)
+  } catch {
+    redirect("/login")
+  }
+
+  const userId = session.userId
 
   // 最近の要約を取得（最新5件）
   const recentSummaries = await db

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "../../../../../auth"
+import { cookies } from "next/headers"
 import { inngest } from "@/inngest/client"
 
 /**
@@ -9,15 +9,27 @@ import { inngest } from "@/inngest/client"
 export async function POST(request: NextRequest) {
   try {
     // 認証チェック
-    const session = await auth()
-    if (!session?.user?.id) {
+    const cookieStore = await cookies()
+    const sessionCookie = cookieStore.get("raindrop-session")
+
+    if (!sessionCookie) {
       return NextResponse.json(
         { error: { code: "UNAUTHORIZED", message: "Authentication required" } },
         { status: 401 }
       )
     }
 
-    const userId = session.user.id
+    let session
+    try {
+      session = JSON.parse(sessionCookie.value)
+    } catch {
+      return NextResponse.json(
+        { error: { code: "UNAUTHORIZED", message: "Invalid session" } },
+        { status: 401 }
+      )
+    }
+
+    const userId = session.userId
 
     // リクエストボディから設定を取得（オプション）
     let filters = {}

@@ -1,4 +1,5 @@
-import { auth } from "../../../../auth"
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 import { db } from "@/db"
 import { raindrops } from "@/db/schema"
 import { eq, desc, isNull, and } from "drizzle-orm"
@@ -21,8 +22,21 @@ async function triggerImport() {
 }
 
 export default async function RaindropsPage() {
-  const session = await auth()
-  const userId = session!.user!.id
+  const cookieStore = await cookies()
+  const sessionCookie = cookieStore.get("raindrop-session")
+
+  if (!sessionCookie) {
+    redirect("/login")
+  }
+
+  let session
+  try {
+    session = JSON.parse(sessionCookie.value)
+  } catch {
+    redirect("/login")
+  }
+
+  const userId = session.userId
 
   // 取り込み済み記事を取得
   const items = await db

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/db"
 import { users } from "@/db/schema"
 import { encrypt } from "@/lib/crypto"
-import { signIn } from "@/auth"
 
 /**
  * Raindrop.io OAuth コールバックハンドラー
