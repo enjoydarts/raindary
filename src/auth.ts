@@ -17,7 +17,33 @@ const RaindropProvider = {
       scope: "",
     },
   },
-  token: "https://raindrop.io/oauth/access_token",
+  token: {
+    url: "https://raindrop.io/oauth/access_token",
+    async request(context: any) {
+      const { params, provider } = context
+
+      const response = await fetch(provider.token.url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          grant_type: "authorization_code",
+          code: params.code,
+          client_id: provider.clientId,
+          client_secret: provider.clientSecret,
+          redirect_uri: params.redirect_uri,
+        }),
+      })
+
+      const tokens = await response.json()
+
+      return {
+        tokens,
+      }
+    },
+  },
   userinfo: "https://api.raindrop.io/rest/v1/user",
   clientId: process.env.AUTH_RAINDROP_ID,
   clientSecret: process.env.AUTH_RAINDROP_SECRET,
