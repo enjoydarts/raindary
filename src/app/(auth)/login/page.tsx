@@ -33,7 +33,7 @@ export default async function LoginPage({ searchParams }: Props) {
 
         <div className="mt-8 space-y-6">
           <Link
-            href="/api/auth/raindrop/authorize"
+            href="/api/auth/signin/raindrop"
             className="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
           >
             Raindrop.ioでログイン

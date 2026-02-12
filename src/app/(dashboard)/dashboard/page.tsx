@@ -1,12 +1,14 @@
+import { auth } from "@/auth"
 import { redirect } from "next/navigation"
-import { getSessionUser } from "@/lib/session"
 
 export default async function DashboardPage() {
-  const user = await getSessionUser()
+  const session = await auth()
 
-  if (!user) {
+  if (!session?.user) {
     redirect("/login")
   }
+
+  const user = session.user
 
   return (
     <div className="min-h-screen bg-gray-50">

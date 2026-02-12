@@ -15,14 +15,17 @@ import { relations } from "drizzle-orm"
 
 /**
  * ユーザーテーブル
- * Auth.jsによる認証情報とRaindropトークンを保存
+ * NextAuth (Auth.js) 標準スキーマ + カスタムフィールド
  */
 export const users = pgTable("users", {
-  id: text("id").primaryKey(), // Raindrop.ioのユーザーID（数値を文字列として保存）
-  email: text("email").notNull().unique(),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   name: text("name"),
+  email: text("email").notNull().unique(),
+  emailVerified: timestamp("emailVerified", { mode: "date", withTimezone: true }),
   image: text("image"),
-  // Raindropトークン（暗号化済み）
+  // カスタムフィールド: Raindropトークン（暗号化済み）
   raindropAccessToken: text("raindrop_access_token"),
   raindropRefreshToken: text("raindrop_refresh_token"),
   raindropTokenExpiresAt: timestamp("raindrop_token_expires_at", {
@@ -31,6 +34,62 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 })
+
+/**
+ * アカウントテーブル
+ * NextAuth (Auth.js) 標準スキーマ - OAuth接続情報
+ */
+export const accounts = pgTable(
+  "accounts",
+  {
+    userId: text("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    provider: text("provider").notNull(),
+    providerAccountId: text("providerAccountId").notNull(),
+    refresh_token: text("refresh_token"),
+    access_token: text("access_token"),
+    expires_at: integer("expires_at"),
+    token_type: text("token_type"),
+    scope: text("scope"),
+    id_token: text("id_token"),
+    session_state: text("session_state"),
+  },
+  (table) => ({
+    compoundKey: primaryKey({
+      columns: [table.provider, table.providerAccountId],
+    }),
+  })
+)
+
+/**
+ * セッションテーブル
+ * NextAuth (Auth.js) 標準スキーマ - データベースセッション
+ */
+export const sessions = pgTable("sessions", {
+  sessionToken: text("sessionToken").primaryKey(),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expires: timestamp("expires", { mode: "date", withTimezone: true }).notNull(),
+})
+
+/**
+ * 検証トークンテーブル
+ * NextAuth (Auth.js) 標準スキーマ
+ */
+export const verificationTokens = pgTable(
+  "verificationToken",
+  {
+    identifier: text("identifier").notNull(),
+    token: text("token").notNull(),
+    expires: timestamp("expires", { mode: "date", withTimezone: true }).notNull(),
+  },
+  (table) => ({
+    compoundKey: primaryKey({ columns: [table.identifier, table.token] }),
+  })
+)
 
 /**
  * Raindrop記事テーブル
@@ -108,27 +167,6 @@ export const summaries = pgTable(
 )
 
 /**
- * セッションテーブル
- * クライアント側Cookie用のセッション管理
- */
-export const sessions = pgTable(
-  "sessions",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  },
-  (table) => ({
-    // インデックス
-    userIdx: index("idx_sessions_user").on(table.userId),
-    expiresIdx: index("idx_sessions_expires").on(table.expiresAt),
-  })
-)
-
-/**
  * API使用状況テーブル
  * コスト追跡のためのAPI呼び出し記録
  */
@@ -159,10 +197,18 @@ export const apiUsage = pgTable(
  * リレーション定義
  */
 export const usersRelations = relations(users, ({ many }) => ({
+  accounts: many(accounts),
+  sessions: many(sessions),
   raindrops: many(raindrops),
   summaries: many(summaries),
-  sessions: many(sessions),
   apiUsage: many(apiUsage),
+}))
+
+export const accountsRelations = relations(accounts, ({ one }) => ({
+  user: one(users, {
+    fields: [accounts.userId],
+    references: [users.id],
+  }),
 }))
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -204,6 +250,9 @@ export const apiUsageRelations = relations(apiUsage, ({ one }) => ({
  */
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
+
+export type Account = typeof accounts.$inferSelect
+export type NewAccount = typeof accounts.$inferInsert
 
 export type Session = typeof sessions.$inferSelect
 export type NewSession = typeof sessions.$inferInsert
