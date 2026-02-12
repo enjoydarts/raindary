@@ -36,8 +36,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: DrizzleAdapter(db),
   providers: [RaindropProvider],
+  // JWTセッションを使用（Edge Runtime対応）
+  session: {
+    strategy: "jwt",
+  },
   callbacks: {
     ...authConfig.callbacks,
+    async jwt({ token, account, profile }) {
+      // 初回ログイン時にアカウント情報をトークンに追加
+      if (account && profile) {
+        token.accessToken = account.access_token
+        token.refreshToken = account.refresh_token
+      }
+      return token
+    },
+    async session({ session, token }) {
+      // トークンからセッションにユーザー情報をコピー
+      if (token.sub) {
+        session.user.id = token.sub
+      }
+      return session
+    },
     async signIn({ user, account }) {
       // Raindrop.ioのトークンを暗号化してusersテーブルに保存
       if (account?.provider === "raindrop" && account.access_token && user.id) {
@@ -67,8 +86,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       return true
     },
-  },
-  session: {
-    strategy: "database",
   },
 })
