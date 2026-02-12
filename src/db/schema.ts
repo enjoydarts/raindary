@@ -17,7 +17,7 @@ import { relations } from "drizzle-orm"
  * ユーザーテーブル
  * NextAuth (Auth.js) 標準スキーマ + カスタムフィールド
  */
-export const users = pgTable("users", {
+export const users = pgTable("user", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
@@ -40,7 +40,7 @@ export const users = pgTable("users", {
  * NextAuth (Auth.js) 標準スキーマ - OAuth接続情報
  */
 export const accounts = pgTable(
-  "accounts",
+  "account",
   {
     userId: text("userId")
       .notNull()
@@ -67,7 +67,7 @@ export const accounts = pgTable(
  * セッションテーブル
  * NextAuth (Auth.js) 標準スキーマ - データベースセッション
  */
-export const sessions = pgTable("sessions", {
+export const sessions = pgTable("session", {
   sessionToken: text("sessionToken").primaryKey(),
   userId: text("userId")
     .notNull()
@@ -80,7 +80,7 @@ export const sessions = pgTable("sessions", {
  * NextAuth (Auth.js) 標準スキーマ
  */
 export const verificationTokens = pgTable(
-  "verificationToken",
+  "verification_token",
   {
     identifier: text("identifier").notNull(),
     token: text("token").notNull(),

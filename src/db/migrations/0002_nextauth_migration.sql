@@ -4,11 +4,13 @@
 DROP TABLE IF EXISTS "api_usage" CASCADE;
 DROP TABLE IF EXISTS "summaries" CASCADE;
 DROP TABLE IF EXISTS "raindrops" CASCADE;
-DROP TABLE IF EXISTS "sessions" CASCADE;
-DROP TABLE IF EXISTS "users" CASCADE;
+DROP TABLE IF EXISTS "session" CASCADE;
+DROP TABLE IF EXISTS "account" CASCADE;
+DROP TABLE IF EXISTS "user" CASCADE;
+DROP TABLE IF EXISTS "verification_token" CASCADE;
 
--- NextAuth標準テーブル: users
-CREATE TABLE "users" (
+-- NextAuth標準テーブル: user
+CREATE TABLE "user" (
 	"id" text PRIMARY KEY NOT NULL,
 	"name" text,
 	"email" text NOT NULL UNIQUE,
@@ -21,8 +23,8 @@ CREATE TABLE "users" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
--- NextAuth標準テーブル: accounts
-CREATE TABLE "accounts" (
+-- NextAuth標準テーブル: account
+CREATE TABLE "account" (
 	"userId" text NOT NULL,
 	"type" text NOT NULL,
 	"provider" text NOT NULL,
@@ -35,19 +37,19 @@ CREATE TABLE "accounts" (
 	"id_token" text,
 	"session_state" text,
 	PRIMARY KEY("provider", "providerAccountId"),
-	CONSTRAINT "accounts_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE cascade ON UPDATE no action
+	CONSTRAINT "account_userId_user_id_fk" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE cascade ON UPDATE no action
 );
 
--- NextAuth標準テーブル: sessions
-CREATE TABLE "sessions" (
+-- NextAuth標準テーブル: session
+CREATE TABLE "session" (
 	"sessionToken" text PRIMARY KEY NOT NULL,
 	"userId" text NOT NULL,
 	"expires" timestamp with time zone NOT NULL,
-	CONSTRAINT "sessions_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE cascade ON UPDATE no action
+	CONSTRAINT "session_userId_user_id_fk" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE cascade ON UPDATE no action
 );
 
--- NextAuth標準テーブル: verificationToken
-CREATE TABLE "verificationToken" (
+-- NextAuth標準テーブル: verification_token
+CREATE TABLE "verification_token" (
 	"identifier" text NOT NULL,
 	"token" text NOT NULL,
 	"expires" timestamp with time zone NOT NULL,
@@ -68,7 +70,7 @@ CREATE TABLE "raindrops" (
 	"synced_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"deleted_at" timestamp with time zone,
 	PRIMARY KEY("user_id", "id"),
-	CONSTRAINT "raindrops_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE cascade ON UPDATE no action
+	CONSTRAINT "raindrops_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE cascade ON UPDATE no action
 );
 
 CREATE INDEX "idx_raindrops_user_id" ON "raindrops" USING btree ("user_id");
@@ -90,7 +92,7 @@ CREATE TABLE "summaries" (
 	"error" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "summaries_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE cascade ON UPDATE no action
+	CONSTRAINT "summaries_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE cascade ON UPDATE no action
 );
 
 CREATE UNIQUE INDEX "unique_user_raindrop_tone" ON "summaries" USING btree ("user_id", "raindrop_id", "tone");
@@ -109,7 +111,7 @@ CREATE TABLE "api_usage" (
 	"output_tokens" integer,
 	"cost_usd" numeric(10, 6),
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "api_usage_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE cascade ON UPDATE no action,
+	CONSTRAINT "api_usage_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE cascade ON UPDATE no action,
 	CONSTRAINT "api_usage_summary_id_summaries_id_fk" FOREIGN KEY ("summary_id") REFERENCES "summaries"("id") ON DELETE set null ON UPDATE no action
 );
 
