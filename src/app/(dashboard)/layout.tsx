@@ -1,4 +1,4 @@
-import { cookies } from "next/headers"
+import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 
@@ -7,19 +7,15 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const cookieStore = await cookies()
-  const sessionCookie = cookieStore.get("raindrop-session")
+  const session = await auth()
 
-  if (!sessionCookie) {
+  // ミドルウェアで認証済みなので、ここでは通常 session が存在する
+  // 念のため確認
+  if (!session?.user) {
     redirect("/login")
   }
 
-  let session
-  try {
-    session = JSON.parse(sessionCookie.value)
-  } catch {
-    redirect("/login")
-  }
+  const user = session.user
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -56,7 +52,7 @@ export default async function DashboardLayout({
             </div>
             <div className="flex items-center">
               <span className="mr-4 text-sm text-gray-700">
-                {session.name || session.email}
+                {user.name || user.email}
               </span>
               <Link
                 href="/api/auth/logout"

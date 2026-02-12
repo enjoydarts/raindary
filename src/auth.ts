@@ -37,12 +37,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: DrizzleAdapter(db),
   providers: [RaindropProvider],
   trustHost: true,
+  basePath: "/api/auth",
   // JWTセッションを使用（Edge Runtime対応）
   session: {
     strategy: "jwt",
   },
   callbacks: {
-    ...authConfig.callbacks,
     async jwt({ token, account, profile }) {
       console.log("[auth][jwt] JWT callback called", {
         hasAccount: !!account,

@@ -1,4 +1,4 @@
-import { cookies } from "next/headers"
+import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { db } from "@/db"
 import { summaries, raindrops, apiUsage } from "@/db/schema"
@@ -12,21 +12,13 @@ export default async function SummaryDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const cookieStore = await cookies()
-  const sessionCookie = cookieStore.get("raindrop-session")
+  const session = await auth()
 
-  if (!sessionCookie) {
+  if (!session?.user?.id) {
     redirect("/login")
   }
 
-  let session
-  try {
-    session = JSON.parse(sessionCookie.value)
-  } catch {
-    redirect("/login")
-  }
-
-  const userId = session.userId
+  const userId = session.user.id
 
   // 要約を取得
   const [summary] = await db

@@ -5,6 +5,9 @@ import type { NextAuthConfig } from "next-auth"
  * ミドルウェアで使用
  */
 export const authConfig: NextAuthConfig = {
+  pages: {
+    signIn: "/login",
+  },
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       console.log("[middleware][authorized] Checking authorization")
