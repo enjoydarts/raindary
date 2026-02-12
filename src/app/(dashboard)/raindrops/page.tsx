@@ -4,62 +4,7 @@ import { db } from "@/db"
 import { raindrops } from "@/db/schema"
 import { eq, desc, isNull, and } from "drizzle-orm"
 import Image from "next/image"
-import { inngest } from "@/inngest/client"
-import { revalidatePath } from "next/cache"
-
-async function triggerImport() {
-  "use server"
-
-  const session = await auth()
-
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized")
-  }
-
-  // Inngestイベントを直接送信
-  await inngest.send({
-    name: "raindrop/import.requested",
-    data: {
-      userId: session.user.id,
-    },
-  })
-
-  // ページをリフレッシュ
-  revalidatePath("/dashboard/raindrops")
-}
-
-async function generateSummary(raindropId: number, tone: string = "neutral") {
-  "use server"
-
-  const session = await auth()
-
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized")
-  }
-
-  // 本文抽出イベントを送信（まだ抽出されていない場合）
-  await inngest.send({
-    name: "raindrop/item.extract.requested",
-    data: {
-      userId: session.user.id,
-      raindropId,
-    },
-  })
-
-  // 要約生成イベントを送信
-  await inngest.send({
-    name: "raindrop/item.summarize.requested",
-    data: {
-      userId: session.user.id,
-      raindropId,
-      tone: tone as "snarky" | "neutral" | "enthusiastic" | "casual",
-    },
-  })
-
-  // ページをリフレッシュ
-  revalidatePath("/dashboard/raindrops")
-  revalidatePath("/dashboard/summaries")
-}
+import { triggerImport } from "./actions"
 
 export default async function RaindropsPage() {
   const session = await auth()
@@ -82,12 +27,7 @@ export default async function RaindropsPage() {
     <div className="px-4 sm:px-0">
       <div className="mb-8 sm:flex sm:items-center sm:justify-between">
         <h1 className="text-3xl font-bold text-gray-900">記事一覧</h1>
-        <form
-          action={async () => {
-            "use server"
-            await triggerImport()
-          }}
-        >
+        <form action={triggerImport}>
           <button
             type="submit"
             className="mt-4 inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0"
@@ -142,11 +82,14 @@ export default async function RaindropsPage() {
                     </div>
                     <div className="mt-3">
                       <form
-                        action={async () => {
+                        action={async (formData: FormData) => {
                           "use server"
-                          await generateSummary(Number(item.id))
+                          const { generateSummary } = await import("./actions")
+                          const raindropId = Number(formData.get("raindropId"))
+                          await generateSummary(raindropId)
                         }}
                       >
+                        <input type="hidden" name="raindropId" value={item.id} />
                         <button
                           type="submit"
                           className="inline-flex items-center rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
