@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1770809105919,
-      "tag": "0000_striped_champions",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1770859713599,
-      "tag": "0001_grey_mentor",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1770964900000,
-      "tag": "0002_add_summaries_deleted_at",
+      "when": 1770965000000,
+      "tag": "0000_initial_schema",
       "breakpoints": true
     }
   ]
