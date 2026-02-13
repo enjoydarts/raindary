@@ -29,7 +29,7 @@ export function ImportButton() {
   }
 
   return (
-    <div className="sm:mt-0 mt-4">
+    <div className="sm:mt-0 mt-4 flex flex-col items-end gap-2">
       <button
         onClick={handleImport}
         disabled={loading}
@@ -38,17 +38,20 @@ export function ImportButton() {
         {loading ? "取り込み中..." : "今すぐ取り込む"}
       </button>
 
-      {error && (
-        <div className="mt-2 rounded-md bg-red-50 p-3 text-sm text-red-800">
-          <strong>エラー:</strong> {error}
-        </div>
-      )}
+      {/* メッセージ表示エリア（高さ固定でレイアウトシフト防止） */}
+      <div className="min-h-[40px] w-full max-w-md">
+        {error && (
+          <div className="rounded-md bg-red-50 p-2 text-sm text-red-800">
+            <strong>エラー:</strong> {error}
+          </div>
+        )}
 
-      {success && (
-        <div className="mt-2 rounded-md bg-green-50 p-3 text-sm text-green-800">
-          取り込みを開始しました。処理には数分かかる場合があります。
-        </div>
-      )}
+        {success && (
+          <div className="rounded-md bg-green-50 p-2 text-sm text-green-800">
+            取り込みを開始しました。処理には数分かかる場合があります。
+          </div>
+        )}
+      </div>
     </div>
   )
 }
