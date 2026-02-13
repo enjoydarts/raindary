@@ -53,6 +53,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (account && profile) {
         token.accessToken = account.access_token
         token.refreshToken = account.refresh_token
+
+        // jwtコールバックでもトークンを保存（signInコールバックのバックアップ）
+        if (account.provider === "raindrop" && account.access_token && token.sub) {
+          console.log("[auth][jwt] Saving Raindrop tokens to database (backup)")
+          try {
+            const { encrypt } = await import("@/lib/crypto")
+            const encryptedAccessToken = encrypt(account.access_token)
+            const encryptedRefreshToken = account.refresh_token
+              ? encrypt(account.refresh_token)
+              : null
+            const expiresAt = account.expires_at
+              ? new Date(account.expires_at * 1000)
+              : null
+
+            await db
+              .update(users)
+              .set({
+                raindropAccessToken: encryptedAccessToken,
+                raindropRefreshToken: encryptedRefreshToken,
+                raindropTokenExpiresAt: expiresAt,
+                updatedAt: new Date(),
+              })
+              .where(eq(users.id, token.sub))
+
+            console.log("[auth][jwt] Raindrop tokens saved successfully")
+          } catch (error) {
+            console.error("[auth][jwt] Failed to save tokens:", error)
+          }
+        }
       }
       return token
     },
@@ -81,6 +110,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       console.log("[auth][signIn] User:", user?.id, user?.email)
       console.log("[auth][signIn] Account provider:", account?.provider)
       console.log("[auth][signIn] Has access token:", !!account?.access_token)
+
+      // Raindrop.io以外のプロバイダーは常に許可
+      if (account?.provider !== "raindrop") {
+        console.log("[auth][signIn] Non-Raindrop provider, allowing sign in")
+        return true
+      }
+
       try {
         console.log("[auth][signIn] Starting signIn callback", {
           userId: user.id,
@@ -89,7 +125,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         })
 
         // Raindrop.ioのトークンを暗号化してusersテーブルに保存
-        if (account?.provider === "raindrop" && account.access_token && user.id) {
+        if (account.access_token && user.id) {
           // 動的インポート（Edge Runtimeの問題を回避）
           const { encrypt } = await import("@/lib/crypto")
 
@@ -116,17 +152,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             .where(eq(users.id, user.id))
 
           console.log("[auth][signIn] Raindrop tokens encrypted and saved for user:", user.id)
+        } else {
+          console.warn("[auth][signIn] Missing access token or user ID")
+          console.warn("[auth][signIn] Relying on JWT callback to save tokens")
         }
 
         console.log("[auth][signIn] signIn callback completed successfully")
         return true
       } catch (error) {
-        console.error("[auth][signIn] Error in signIn callback:", error)
+        console.error("[auth][signIn] CRITICAL ERROR in signIn callback:", error)
         console.error("[auth][signIn] Error details:", {
           message: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
         })
-        // エラーが発生してもログインは続行
+        // エラーが発生した場合、jwtコールバックに任せる
+        console.error("[auth][signIn] Continuing with login, JWT callback will handle token save")
         return true
       }
     },
