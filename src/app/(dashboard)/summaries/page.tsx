@@ -6,6 +6,13 @@ import { eq, desc } from "drizzle-orm"
 import Link from "next/link"
 import Image from "next/image"
 
+const TONE_LABELS: Record<string, { label: string; icon: string }> = {
+  neutral: { label: "客観的", icon: "📋" },
+  snarky: { label: "毒舌", icon: "😎" },
+  enthusiastic: { label: "熱量高め", icon: "🔥" },
+  casual: { label: "カジュアル", icon: "💬" },
+}
+
 export default async function SummariesPage() {
   const session = await auth()
 
@@ -84,8 +91,16 @@ export default async function SummariesPage() {
                     fill
                     className="object-cover transition-transform group-hover:scale-105"
                   />
-                  {/* ステータスバッジ（画像の上） */}
-                  <div className="absolute top-3 right-3">
+                  {/* バッジ（画像の上） */}
+                  <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
+                    {/* トーンバッジ */}
+                    <span className="inline-flex items-center gap-1 rounded-full bg-indigo-600/90 backdrop-blur-sm px-2.5 py-1 text-xs font-semibold text-white">
+                      <span>{TONE_LABELS[item.tone]?.icon || "📝"}</span>
+                      {TONE_LABELS[item.tone]?.label || item.tone}
+                    </span>
+
+                    {/* ステータスバッジ */}
+                    <div>
                     {item.status === "completed" && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-green-600/90 backdrop-blur-sm px-2.5 py-1 text-xs font-semibold text-white">
                         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -112,14 +127,23 @@ export default async function SummariesPage() {
                       </span>
                     )}
                   </div>
+                  </div>
                 </div>
               ) : (
                 <div className="relative aspect-[16/9] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
                   <svg className="h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
                   </svg>
-                  {/* ステータスバッジ */}
-                  <div className="absolute top-3 right-3">
+                  {/* バッジ */}
+                  <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
+                    {/* トーンバッジ */}
+                    <span className="inline-flex items-center gap-1 rounded-full bg-indigo-600 px-2.5 py-1 text-xs font-semibold text-white">
+                      <span>{TONE_LABELS[item.tone]?.icon || "📝"}</span>
+                      {TONE_LABELS[item.tone]?.label || item.tone}
+                    </span>
+
+                    {/* ステータスバッジ */}
+                    <div>
                     {item.status === "completed" && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-green-600 px-2.5 py-1 text-xs font-semibold text-white">
                         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -145,6 +169,7 @@ export default async function SummariesPage() {
                         処理中
                       </span>
                     )}
+                  </div>
                   </div>
                 </div>
               )}
