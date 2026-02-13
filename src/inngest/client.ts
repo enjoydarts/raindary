@@ -16,12 +16,15 @@ export type Events = {
     data: {
       userId: string
       raindropId: number
+      summaryId?: string // オプショナル: 要約レコードのID（作成済みの場合）
+      tone?: "snarky" | "neutral" | "enthusiastic" | "casual" // オプショナル: 要約のトーン
     }
   }
   "raindrop/item.summarize.requested": {
     data: {
       userId: string
       raindropId: number
+      summaryId?: string // オプショナル: 要約レコードのID（作成済みの場合）
       tone: "snarky" | "neutral" | "enthusiastic" | "casual"
     }
   }
