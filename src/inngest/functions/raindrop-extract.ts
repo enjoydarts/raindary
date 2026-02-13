@@ -20,8 +20,8 @@ export const raindropExtract = inngest.createFunction(
     id: "raindrop-extract",
     retries: 2,
     concurrency: [
-      { limit: 20 }, // グローバル: 最大20ジョブ
-      { limit: 5, key: "event.data.userId" }, // ユーザー単位: 5ジョブ
+      { limit: 5 }, // グローバル: 最大5ジョブ（無料プラン制限）
+      { limit: 2, key: "event.data.userId" }, // ユーザー単位: 2ジョブ
     ],
   },
   { event: "raindrop/item.extract.requested" },

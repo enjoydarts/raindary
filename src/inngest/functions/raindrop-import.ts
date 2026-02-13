@@ -14,7 +14,7 @@ export const raindropImport = inngest.createFunction(
     id: "raindrop-import",
     retries: 3,
     concurrency: [
-      { limit: 10 }, // グローバル: 最大10ジョブ
+      { limit: 5 }, // グローバル: 最大5ジョブ（無料プラン制限）
       { limit: 1, key: "event.data.userId" }, // ユーザー単位: 1ジョブのみ
     ],
   },

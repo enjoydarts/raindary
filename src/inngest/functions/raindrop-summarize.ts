@@ -20,8 +20,8 @@ export const raindropSummarize = inngest.createFunction(
     id: "raindrop-summarize",
     retries: 4,
     concurrency: [
-      { limit: 50 }, // グローバル: 最大50ジョブ
-      { limit: 3, key: "event.data.userId" }, // ユーザー単位: 3ジョブ
+      { limit: 5 }, // グローバル: 最大5ジョブ（無料プラン制限）
+      { limit: 2, key: "event.data.userId" }, // ユーザー単位: 2ジョブ
     ],
     onFailure: async ({ event, error }) => {
       // 失敗時にDBに記録

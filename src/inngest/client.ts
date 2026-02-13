@@ -31,6 +31,6 @@ export type Events = {
  * Inngestクライアント
  */
 export const inngest = new Inngest({
-  id: "raindary",
+  id: process.env.INNGEST_APP_ID || "raindary",
   schemas: new EventSchemas().fromRecord<Events>(),
 })
