@@ -50,7 +50,7 @@ export default async function RaindropsPage() {
           </div>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
           <ul className="divide-y divide-gray-100">
             {items.map((item) => (
               <li key={item.id} className="p-5 hover:bg-gray-50/50 transition-colors">

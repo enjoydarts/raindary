@@ -142,7 +142,7 @@ export function SummaryButton({ raindropId }: SummaryButtonProps) {
         </button>
 
         {isOpen && !loading && (
-          <div className="absolute z-10 mt-1 w-64 rounded-lg border border-gray-200 bg-white shadow-lg">
+          <div className="absolute z-50 mt-1 w-64 rounded-lg border border-gray-200 bg-white shadow-lg">
             <div className="p-2">
               {TONE_OPTIONS.map((option) => (
                 <button
