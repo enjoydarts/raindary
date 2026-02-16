@@ -1,8 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { Loader2 } from "lucide-react"
+import { Loader2, Check, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { triggerImport } from "./actions"
 
 export function ImportButton() {
@@ -44,15 +45,21 @@ export function ImportButton() {
       {/* メッセージ表示エリア（高さ固定でレイアウトシフト防止） */}
       <div className="min-h-[40px] w-full max-w-md">
         {error && (
-          <div className="rounded-md bg-red-50 p-2 text-sm text-red-800">
-            <strong>エラー:</strong> {error}
-          </div>
+          <Alert variant="destructive" className="bg-red-50 border-red-200">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              <strong>エラー:</strong> {error}
+            </AlertDescription>
+          </Alert>
         )}
 
         {success && (
-          <div className="rounded-md bg-green-50 p-2 text-sm text-green-800">
-            取り込みを開始しました。処理には数分かかる場合があります。
-          </div>
+          <Alert className="bg-green-50 border-green-200 text-green-800">
+            <Check className="h-4 w-4 text-green-800" />
+            <AlertDescription className="text-sm">
+              取り込みを開始しました。処理には数分かかる場合があります。
+            </AlertDescription>
+          </Alert>
         )}
       </div>
     </div>

@@ -1,6 +1,15 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState } from "react"
+import { FileText, ChevronDown, Loader2, Check, AlertCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { generateSummary } from "./actions"
 
 interface SummaryButtonProps {
@@ -40,28 +49,11 @@ export function SummaryButton({ raindropId }: SummaryButtonProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const [isOpen, setIsOpen] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-
-  // クリック外で閉じる
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside)
-      return () => document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [isOpen])
 
   const handleGenerate = async (tone: Tone) => {
     setLoading(true)
     setError(null)
     setSuccess(false)
-    setIsOpen(false)
 
     try {
       await generateSummary(raindropId, tone)
@@ -77,139 +69,72 @@ export function SummaryButton({ raindropId }: SummaryButtonProps) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="relative" ref={dropdownRef}>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          disabled={loading}
-          className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {loading ? (
-            <>
-              <svg
-                className="h-3.5 w-3.5 animate-spin"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-              生成中...
-            </>
-          ) : (
-            <>
-              <svg
-                className="h-3.5 w-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              要約を生成
-              <svg
-                className="h-3 w-3"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </>
-          )}
-        </button>
-
-        {isOpen && !loading && (
-          <div className="absolute z-50 mt-1 w-64 rounded-lg border border-gray-200 bg-white shadow-lg">
-            <div className="p-2">
-              {TONE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => handleGenerate(option.value)}
-                  className="w-full text-left rounded-md px-3 py-2 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-start gap-2">
-                    <span className="text-lg">{option.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-900">
-                        {option.label}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-0.5">
-                        {option.description}
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {success && (
-        <div className="rounded-md bg-green-50 border border-green-200 px-3 py-2 text-xs text-green-800">
-          <div className="flex items-center gap-1.5">
-            <svg
-              className="h-4 w-4 flex-shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+    <div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            size="sm"
+            disabled={loading}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                生成中...
+              </>
+            ) : (
+              <>
+                <FileText className="h-3.5 w-3.5 mr-1.5" />
+                要約を生成
+                <ChevronDown className="h-3 w-3 ml-1" />
+              </>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-64">
+          {TONE_OPTIONS.map((option) => (
+            <DropdownMenuItem
+              key={option.value}
+              onClick={() => handleGenerate(option.value)}
+              className="cursor-pointer"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-            <span>要約生成を開始しました。処理には1-2分かかります。</span>
-          </div>
+              <div className="flex items-start gap-2">
+                <span className="text-lg">{option.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-900">
+                    {option.label}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {option.description}
+                  </div>
+                </div>
+              </div>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* メッセージ表示エリア（レイアウトシフト防止） */}
+      {success && (
+        <div className="mt-2 max-w-md">
+          <Alert className="bg-green-50 border-green-200 text-green-800">
+            <Check className="h-4 w-4 text-green-800" />
+            <AlertDescription className="text-xs">
+              要約生成を開始しました。処理には1-2分かかります。
+            </AlertDescription>
+          </Alert>
         </div>
       )}
 
       {error && (
-        <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-800">
-          <div className="flex items-start gap-1.5">
-            <svg
-              className="h-4 w-4 flex-shrink-0 mt-0.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <div>
+        <div className="mt-2 max-w-md">
+          <Alert variant="destructive" className="bg-red-50 border-red-200">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs">
               <strong className="font-semibold">エラー:</strong>
               <p className="mt-0.5">{error}</p>
-            </div>
-          </div>
+            </AlertDescription>
+          </Alert>
         </div>
       )}
     </div>

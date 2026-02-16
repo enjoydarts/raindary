@@ -59,9 +59,10 @@ export async function generateSummary(raindropId: number, tone: string = "neutra
 
   const userId = session.user.id
 
-  // summariesテーブルにレコードを作成（status: pending）
+  // summariesテーブルにレコードを作成または更新（status: pending）
   const { withRLS } = await import("@/db/rls")
   const { summaries } = await import("@/db/schema")
+  const { sql } = await import("drizzle-orm")
 
   const [summary] = await withRLS(userId, async (tx) => {
     return await tx
@@ -74,10 +75,21 @@ export async function generateSummary(raindropId: number, tone: string = "neutra
         model: "pending",
         status: "pending",
       })
+      .onConflictDoUpdate({
+        target: [summaries.userId, summaries.raindropId, summaries.tone],
+        set: {
+          summary: "",
+          model: "pending",
+          status: "pending",
+          error: null,
+          deletedAt: null,
+          updatedAt: sql`CURRENT_TIMESTAMP`,
+        },
+      })
       .returning()
   })
 
-  console.log("[generateSummary] Created summary record:", summary.id)
+  console.log("[generateSummary] Created/updated summary record:", summary.id)
 
   // 本文抽出イベントを送信（extractで失敗した場合はsummaryを更新）
   await inngest.send({
