@@ -33,7 +33,8 @@ export async function withRLS<T>(
 ): Promise<T> {
   return await db.transaction(async (tx) => {
     // セッション変数を設定（RLSポリシーで使用）
-    await tx.execute(sql`SET LOCAL app.current_user_id = ${userId}`)
+    // 注: SET LOCALはプレースホルダーをサポートしないため、sql.raw()を使用
+    await tx.execute(sql.raw(`SET LOCAL app.current_user_id = '${userId}'`))
 
     // コールバックを実行
     return await callback(tx)
@@ -80,7 +81,8 @@ export async function withAnonymous<T>(
 ): Promise<T> {
   return await db.transaction(async (tx) => {
     // 匿名ユーザーとして設定（空文字列）
-    await tx.execute(sql`SET LOCAL app.current_user_id = ''`)
+    // 注: SET LOCALはプレースホルダーをサポートしないため、sql.raw()を使用
+    await tx.execute(sql.raw(`SET LOCAL app.current_user_id = ''`))
 
     return await callback(tx)
   })
