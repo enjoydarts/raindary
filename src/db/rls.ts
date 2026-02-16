@@ -31,9 +31,16 @@ export async function withRLS<T>(
   userId: string,
   callback: (tx: DbTransaction) => Promise<T>
 ): Promise<T> {
+  // UUIDフォーマットのバリデーション（SQLインジェクション対策）
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!uuidRegex.test(userId)) {
+    throw new Error(`Invalid userId format: ${userId}`)
+  }
+
   return await db.transaction(async (tx) => {
     // セッション変数を設定（RLSポリシーで使用）
-    // 注: SET LOCALはプレースホルダーをサポートしないため、sql.raw()を使用
+    // 注: SET LOCALはプレースホルダーをサポートしないため、
+    // UUIDバリデーション後にsql.raw()で安全に使用
     await tx.execute(sql.raw(`SET LOCAL app.current_user_id = '${userId}'`))
 
     // コールバックを実行
