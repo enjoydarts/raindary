@@ -4,6 +4,9 @@ import { withRLS } from "@/db/rls"
 import { summaries, raindrops } from "@/db/schema"
 import { eq, desc, and } from "drizzle-orm"
 import Link from "next/link"
+import { FileText, ArrowRight } from "lucide-react"
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { SearchableList } from "./searchable-list"
 
 export default async function SummariesPage() {
@@ -52,26 +55,21 @@ export default async function SummariesPage() {
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+        <Card>
           <div className="px-4 py-16 text-center">
             <div className="mx-auto h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-              <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
+              <FileText className="h-6 w-6 text-gray-400" />
             </div>
             <h3 className="text-base font-semibold text-gray-900 mb-2">まだ要約が生成されていません</h3>
             <p className="text-sm text-gray-500 mb-4">記事を取り込んで、要約を生成してみましょう</p>
-            <Link
-              href="/raindrops"
-              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
-            >
-              記事を取り込む
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </Link>
+            <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
+              <Link href="/raindrops">
+                記事を取り込む
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Link>
+            </Button>
           </div>
-        </div>
+        </Card>
       ) : (
         <SearchableList items={items} />
       )}

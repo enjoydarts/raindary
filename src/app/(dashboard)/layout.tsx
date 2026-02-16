@@ -2,6 +2,8 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
+import { LayoutDashboard, Newspaper, FileText, BarChart3, LogOut } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default async function DashboardLayout({
   children,
@@ -34,32 +36,36 @@ export default async function DashboardLayout({
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                  className="inline-flex items-center gap-2 border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
                 >
+                  <LayoutDashboard className="h-4 w-4" />
                   ダッシュボード
                 </Link>
                 <Link
                   href="/raindrops"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                  className="inline-flex items-center gap-2 border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
                 >
+                  <Newspaper className="h-4 w-4" />
                   記事一覧
                 </Link>
                 <Link
                   href="/summaries"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                  className="inline-flex items-center gap-2 border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
                 >
+                  <FileText className="h-4 w-4" />
                   要約一覧
                 </Link>
                 <Link
                   href="/stats"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                  className="inline-flex items-center gap-2 border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700"
                 >
+                  <BarChart3 className="h-4 w-4" />
                   統計
                 </Link>
               </div>
             </div>
-            <div className="flex items-center">
-              <span className="mr-4 text-sm text-gray-700">
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-700">
                 {user.name || user.email}
               </span>
               <form
@@ -69,12 +75,15 @@ export default async function DashboardLayout({
                   await signOut()
                 }}
               >
-                <button
+                <Button
                   type="submit"
-                  className="text-sm text-gray-500 hover:text-gray-700"
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-500 hover:text-gray-700"
                 >
+                  <LogOut className="h-4 w-4 mr-2" />
                   ログアウト
-                </button>
+                </Button>
               </form>
             </div>
           </div>
