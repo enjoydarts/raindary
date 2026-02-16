@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { triggerImport } from "./actions"
 
 export function ImportButton() {
@@ -30,13 +32,14 @@ export function ImportButton() {
 
   return (
     <div className="sm:mt-0 mt-4 flex flex-col items-end gap-2">
-      <button
+      <Button
         onClick={handleImport}
         disabled={loading}
-        className="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="bg-indigo-600 hover:bg-indigo-700"
       >
+        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         {loading ? "取り込み中..." : "今すぐ取り込む"}
-      </button>
+      </Button>
 
       {/* メッセージ表示エリア（高さ固定でレイアウトシフト防止） */}
       <div className="min-h-[40px] w-full max-w-md">

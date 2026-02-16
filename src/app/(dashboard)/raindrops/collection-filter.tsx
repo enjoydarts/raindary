@@ -1,6 +1,9 @@
 "use client"
 
 import { useState } from "react"
+import { Folder, List } from "lucide-react"
+import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 
 interface Collection {
   id: number
@@ -22,16 +25,9 @@ export function CollectionFilter({ collections, onFilterChange }: CollectionFilt
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <Card className="p-4">
       <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-          />
-        </svg>
+        <Folder className="h-4 w-4" />
         コレクション
       </h3>
 
@@ -46,25 +42,19 @@ export function CollectionFilter({ collections, onFilterChange }: CollectionFilt
           }`}
         >
           <span className="flex items-center gap-2">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
+            <List className="h-4 w-4" />
             すべて
           </span>
-          <span
-            className={`text-xs px-2 py-0.5 rounded-full ${
+          <Badge
+            variant="secondary"
+            className={
               selectedCollection === null
-                ? "bg-indigo-100 text-indigo-700"
-                : "bg-gray-100 text-gray-600"
-            }`}
+                ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-100"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-100"
+            }
           >
             {collections.reduce((sum, c) => sum + c.count, 0)}
-          </span>
+          </Badge>
         </button>
 
         {/* コレクション一覧 */}
@@ -79,28 +69,22 @@ export function CollectionFilter({ collections, onFilterChange }: CollectionFilt
             }`}
           >
             <span className="flex items-center gap-2 truncate">
-              <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                />
-              </svg>
+              <Folder className="h-4 w-4 flex-shrink-0" />
               <span className="truncate">{collection.name}</span>
             </span>
-            <span
-              className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
+            <Badge
+              variant="secondary"
+              className={`flex-shrink-0 ${
                 selectedCollection === collection.id
-                  ? "bg-indigo-100 text-indigo-700"
-                  : "bg-gray-100 text-gray-600"
+                  ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-100"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-100"
               }`}
             >
               {collection.count}
-            </span>
+            </Badge>
           </button>
         ))}
       </div>
-    </div>
+    </Card>
   )
 }

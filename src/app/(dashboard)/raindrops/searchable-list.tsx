@@ -2,6 +2,10 @@
 
 import { useState, useMemo } from "react"
 import Image from "next/image"
+import { Search, X, Calendar, Tag } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { SummaryButton } from "./summary-button"
 import { DeleteButton } from "./delete-button"
 import { CollectionFilter } from "./collection-filter"
@@ -101,41 +105,24 @@ export function SearchableList({ items, collectionMap = new Map() }: SearchableL
         {/* 検索バー */}
         <div className="relative">
         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-          <svg
-            className="h-5 w-5 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
+          <Search className="h-5 w-5 text-gray-400" />
         </div>
-        <input
+        <Input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="タイトル、本文、タグで検索..."
-          className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-10 pr-3 text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="pl-10 pr-10"
         />
         {searchQuery && (
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setSearchQuery("")}
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+            className="absolute inset-y-0 right-0 h-full px-3 hover:bg-transparent"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+            <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+          </Button>
         )}
       </div>
 
@@ -148,22 +135,10 @@ export function SearchableList({ items, collectionMap = new Map() }: SearchableL
 
       {/* 記事リスト */}
       {filteredItems.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+        <Card>
           <div className="px-4 py-16 text-center">
             <div className="mx-auto h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-              <svg
-                className="h-6 w-6 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+              <Search className="h-6 w-6 text-gray-400" />
             </div>
             <h3 className="text-base font-semibold text-gray-900 mb-2">
               検索結果が見つかりませんでした
@@ -172,9 +147,9 @@ export function SearchableList({ items, collectionMap = new Map() }: SearchableL
               別のキーワードで検索してみてください。
             </p>
           </div>
-        </div>
+        </Card>
       ) : (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+        <Card>
           <ul className="divide-y divide-gray-100">
             {filteredItems.map((item) => (
               <li key={item.id} className="p-5 hover:bg-gray-50/50 transition-colors">
@@ -195,38 +170,14 @@ export function SearchableList({ items, collectionMap = new Map() }: SearchableL
                     )}
                     <div className="mt-3 flex items-center gap-3 text-xs text-gray-500">
                       <span className="flex items-center gap-1">
-                        <svg
-                          className="h-3.5 w-3.5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
+                        <Calendar className="h-3.5 w-3.5" />
                         {new Date(item.createdAtRemote).toLocaleDateString("ja-JP")}
                       </span>
                       {item.tags &&
                       Array.isArray(item.tags) &&
                       (item.tags as unknown[]).length > 0 ? (
                         <span className="flex items-center gap-1" suppressHydrationWarning>
-                          <svg
-                            className="h-3.5 w-3.5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                            />
-                          </svg>
+                          <Tag className="h-3.5 w-3.5" />
                           {String((item.tags as unknown as string[]).slice(0, 3).join(", "))}
                         </span>
                       ) : null}
@@ -249,7 +200,7 @@ export function SearchableList({ items, collectionMap = new Map() }: SearchableL
               </li>
             ))}
           </ul>
-        </div>
+        </Card>
       )}
       </div>
     </div>

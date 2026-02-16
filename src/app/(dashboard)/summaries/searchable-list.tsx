@@ -3,6 +3,11 @@
 import { useState, useMemo } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { Search, X, Check, Loader2, FileText } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { ShareButton } from "./share-button"
 import { togglePublic } from "./actions"
 import { useRouter } from "next/navigation"
@@ -82,41 +87,24 @@ export function SearchableList({ items }: SearchableListProps) {
       {/* 検索バー */}
       <div className="relative">
         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-          <svg
-            className="h-5 w-5 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
+          <Search className="h-5 w-5 text-gray-400" />
         </div>
-        <input
+        <Input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="記事タイトル、要約内容、トーンで検索..."
-          className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-10 pr-3 text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="pl-10 pr-10"
         />
         {searchQuery && (
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setSearchQuery("")}
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+            className="absolute inset-y-0 right-0 h-full px-3 hover:bg-transparent"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+            <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+          </Button>
         )}
       </div>
 
@@ -129,22 +117,10 @@ export function SearchableList({ items }: SearchableListProps) {
 
       {/* 要約リスト */}
       {filteredItems.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+        <Card>
           <div className="px-4 py-16 text-center">
             <div className="mx-auto h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-              <svg
-                className="h-6 w-6 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+              <Search className="h-6 w-6 text-gray-400" />
             </div>
             <h3 className="text-base font-semibold text-gray-900 mb-2">
               検索結果が見つかりませんでした
@@ -153,7 +129,7 @@ export function SearchableList({ items }: SearchableListProps) {
               別のキーワードで検索してみてください。
             </p>
           </div>
-        </div>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filteredItems.map((item) => (
@@ -173,152 +149,64 @@ export function SearchableList({ items }: SearchableListProps) {
                   {/* バッジ */}
                   <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
                     {/* トーンバッジ */}
-                    <span className="inline-flex items-center gap-1 rounded-full bg-indigo-600/90 backdrop-blur-sm px-2.5 py-1 text-xs font-semibold text-white">
-                      <span>{TONE_LABELS[item.tone]?.icon || "📝"}</span>
+                    <Badge className="bg-indigo-600/90 backdrop-blur-sm hover:bg-indigo-600/90">
+                      <span className="mr-1">{TONE_LABELS[item.tone]?.icon || "📝"}</span>
                       {TONE_LABELS[item.tone]?.label || item.tone}
-                    </span>
+                    </Badge>
 
                     {/* ステータスバッジ */}
                     <div>
                       {item.status === "completed" && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-green-600/90 backdrop-blur-sm px-2.5 py-1 text-xs font-semibold text-white">
-                          <svg
-                            className="h-3 w-3"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
+                        <Badge className="bg-green-600/90 backdrop-blur-sm hover:bg-green-600/90">
+                          <Check className="h-3 w-3 mr-1" />
                           完了
-                        </span>
+                        </Badge>
                       )}
                       {item.status === "failed" && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-red-600/90 backdrop-blur-sm px-2.5 py-1 text-xs font-semibold text-white">
-                          <svg
-                            className="h-3 w-3"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
+                        <Badge className="bg-red-600/90 backdrop-blur-sm hover:bg-red-600/90">
+                          <X className="h-3 w-3 mr-1" />
                           失敗
-                        </span>
+                        </Badge>
                       )}
                       {item.status === "processing" && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-yellow-600/90 backdrop-blur-sm px-2.5 py-1 text-xs font-semibold text-white">
-                          <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            />
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            />
-                          </svg>
+                        <Badge className="bg-yellow-600/90 backdrop-blur-sm hover:bg-yellow-600/90">
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                           処理中
-                        </span>
+                        </Badge>
                       )}
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="relative aspect-[16/9] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-                  <svg
-                    className="h-12 w-12 text-gray-300"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
-                    />
-                  </svg>
+                  <FileText className="h-12 w-12 text-gray-300" />
                   {/* バッジ */}
                   <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
                     {/* トーンバッジ */}
-                    <span className="inline-flex items-center gap-1 rounded-full bg-indigo-600 px-2.5 py-1 text-xs font-semibold text-white">
-                      <span>{TONE_LABELS[item.tone]?.icon || "📝"}</span>
+                    <Badge className="bg-indigo-600 hover:bg-indigo-600">
+                      <span className="mr-1">{TONE_LABELS[item.tone]?.icon || "📝"}</span>
                       {TONE_LABELS[item.tone]?.label || item.tone}
-                    </span>
+                    </Badge>
 
                     {/* ステータスバッジ */}
                     <div>
                       {item.status === "completed" && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-green-600 px-2.5 py-1 text-xs font-semibold text-white">
-                          <svg
-                            className="h-3 w-3"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
+                        <Badge className="bg-green-600 hover:bg-green-600">
+                          <Check className="h-3 w-3 mr-1" />
                           完了
-                        </span>
+                        </Badge>
                       )}
                       {item.status === "failed" && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-red-600 px-2.5 py-1 text-xs font-semibold text-white">
-                          <svg
-                            className="h-3 w-3"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
+                        <Badge className="bg-red-600 hover:bg-red-600">
+                          <X className="h-3 w-3 mr-1" />
                           失敗
-                        </span>
+                        </Badge>
                       )}
                       {item.status === "processing" && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-yellow-600 px-2.5 py-1 text-xs font-semibold text-white">
-                          <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            />
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            />
-                          </svg>
+                        <Badge className="bg-yellow-600 hover:bg-yellow-600">
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                           処理中
-                        </span>
+                        </Badge>
                       )}
                     </div>
                   </div>
