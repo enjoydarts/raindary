@@ -165,18 +165,18 @@ export default async function DashboardPage() {
       {/* 最近の要約 */}
       {recentSummaries.length > 0 && (
         <div>
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-6 flex items-center justify-between">
             <h2 className="text-xl font-semibold text-gray-900">最近の要約</h2>
             <Link href="/summaries" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
               すべて見る →
             </Link>
           </div>
-          <div className="space-y-4">
+          <div className="grid gap-4">
             {recentSummaries.map((summary) => (
               <Link key={summary.id} href={`/summaries/${summary.id}`}>
                 <Card className="transition-all hover:shadow-md hover:border-indigo-200">
-                  <CardContent className="p-5">
-                    <div className="space-y-3">
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
                       {/* ヘッダー: タイトルとステータス */}
                       <div className="flex items-start justify-between gap-3">
                         <h3 className="flex-1 text-base font-semibold text-gray-900 line-clamp-2">

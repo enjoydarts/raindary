@@ -4,6 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { LayoutDashboard, Newspaper, FileText, BarChart3, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Footer } from "@/components/Footer"
 
 export default async function DashboardLayout({
   children,
@@ -21,7 +22,7 @@ export default async function DashboardLayout({
   const user = session.user
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex min-h-screen flex-col bg-gray-50">
       {/* ナビゲーションバー */}
       <nav className="bg-white shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -91,7 +92,10 @@ export default async function DashboardLayout({
       </nav>
 
       {/* メインコンテンツ */}
-      <main className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">{children}</main>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+
+      {/* フッター */}
+      <Footer />
     </div>
   )
 }
