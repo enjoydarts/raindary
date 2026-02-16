@@ -5,29 +5,29 @@ Raindrop.ioに保存した記事を自動で取り込み、AI要約で「読ん�
 ## 概要
 
 技術記事を大量に保存するが読み切れないエンジニアのための、Claude APIを使った自動要約システム。
-複数のトーン（casual、professional、enthusiastic）で要約を生成し、コストも可視化します。
+複数のトーン（neutral、snarky、enthusiastic、casual）で要約を生成し、コストも可視化します。
 
 ## 技術スタック
 
 ### フロントエンド
 
-- **Next.js 15**: App Router, Server Components, Server Actions
+- **Next.js 16**: App Router, Server Components, Server Actions
+- **React 19**: 最新のReactフレームワーク
 - **TypeScript**: 型安全な開発
 - **Tailwind CSS**: ユーティリティファーストCSS
-- **shadcn/ui**: 再利用可能なUIコンポーネント
 
 ### バックエンド
 
 - **Auth.js v5**: Raindrop.io OAuth認証
 - **Drizzle ORM**: 型安全なSQL操作
-- **PostgreSQL**: リレーショナルデータベース
+- **PostgreSQL**: リレーショナルデータベース（Supabase）
 - **Inngest**: イベント駆動型の非同期処理
 
 ### AI/ML
 
 - **Anthropic Claude API**:
-  - Claude 3.5 Haiku: 事実抽出（高速・低コスト）
-  - Claude 3.5 Sonnet: 要約生成（高品質）
+  - Claude Sonnet 4.5: 事実抽出と要約生成（高品質）
+  - Claude Haiku 4.5: 軽量タスク用（高速・低コスト）
 
 ### インフラ
 
@@ -36,14 +36,28 @@ Raindrop.ioに保存した記事を自動で取り込み、AI要約で「読ん�
 
 ## 特徴
 
+### コア機能
+
 - **Raindrop.io連携**: OAuth認証でRaindrop.ioのブックマークを自動取り込み
-- **AI要約生成**: Claude APIによる高品質な記事要約
-- **複数のトーン**: casual（カジュアル）、professional（プロフェッショナル）、enthusiastic（熱量高め）の3種類
-- **2段階AI処理**: 事実抽出（Haiku）→ 要約生成（Sonnet）の効率的なパイプライン
-- **コスト追跡**: API使用料を自動計算・可視化
+- **AI要約生成**: Claude API（Sonnet 4.5）による高品質な記事要約
+- **複数のトーン**: neutral（客観的）、snarky（毒舌）、enthusiastic（熱量高め）、casual（カジュアル）の4種類
+- **2段階AI処理**: 記事抽出 → 事実抽出 → 要約生成の効率的なパイプライン
+- **コスト追跡**: API使用料を自動計算・統計ダッシュボードで可視化
+
+### ユーザー体験
+
+- **検索機能**: 記事タイトル、要約内容、トーンでリアルタイム検索
+- **コレクションフィルター**: Raindrop.ioのコレクション別に記事を整理・絞り込み
+- **統計ダッシュボード**: 記事数、要約数、月間コスト、トーン分布を可視化
+- **共有機能**: 要約を公開URLで外部共有（公開/非公開切り替え可能）
+- **要約詳細ページ**: 自分の要約を詳しく閲覧（公開状態も確認可能）
+
+### 開発者体験
+
 - **非同期処理**: Inngestによるバックグラウンド処理で快適なUX
 - **マルチユーザー対応**: 各ユーザーのデータを安全に分離
 - **完全Docker化**: ローカル開発環境を簡単セットアップ
+- **監視機能**: ヘルスチェックエンドポイント、Vercel Speed Insights & Analytics統合
 
 ## アーキテクチャ
 
@@ -143,38 +157,55 @@ docker compose exec web npm run db:migrate
 
 ```
 RainDrop_AI/
-├── docs/                      # ドキュメント
-│   └── SETUP.md              # セットアップガイド
-├── drizzle/                   # データベースマイグレーション
+├── docs/                          # ドキュメント
+│   ├── SETUP.md                  # セットアップガイド
+│   ├── DEPLOYMENT.md             # デプロイガイド
+│   └── データベース設計.md        # DB設計ドキュメント
+├── drizzle/                       # データベースマイグレーション
 │   └── migrations/
-├── extract-service/           # Python記事抽出サービス
-│   ├── Dockerfile
-│   ├── main.py
-│   └── requirements.txt
+├── services/                      # バックエンドサービス
+│   └── extract/                  # Python記事抽出サービス
+│       ├── Dockerfile
+│       ├── Dockerfile.prod       # 本番用Dockerfile
+│       ├── main.py
+│       └── requirements.txt
+├── public/                        # 静的ファイル
+│   └── logo.png                  # アプリロゴ
 ├── src/
-│   ├── app/                   # Next.js App Router
-│   │   ├── (auth)/           # 認証関連ページ
-│   │   ├── (dashboard)/      # ダッシュボードページ
-│   │   └── api/              # APIルート
-│   ├── components/           # Reactコンポーネント
-│   ├── db/                   # データベース設定
-│   │   ├── schema.ts         # Drizzleスキーマ定義
+│   ├── app/                       # Next.js App Router
+│   │   ├── (auth)/               # 認証関連ページ
+│   │   │   └── login/
+│   │   ├── (dashboard)/          # ダッシュボードページ
+│   │   │   ├── dashboard/        # ダッシュボード
+│   │   │   ├── raindrops/        # 記事一覧
+│   │   │   ├── summaries/        # 要約一覧・詳細
+│   │   │   └── stats/            # 統計ダッシュボード
+│   │   ├── share/[id]/           # 公開共有ページ
+│   │   ├── api/                  # APIルート
+│   │   │   ├── health/          # ヘルスチェック
+│   │   │   └── inngest/         # Inngest webhook
+│   │   ├── icon.png              # Favicon
+│   │   └── layout.tsx            # ルートレイアウト
+│   ├── db/                       # データベース設定
+│   │   ├── schema.ts             # Drizzleスキーマ定義
+│   │   ├── migrations/           # マイグレーションSQL
 │   │   └── index.ts
-│   ├── inngest/              # Inngest関数
+│   ├── inngest/                  # Inngest関数
 │   │   ├── client.ts
 │   │   └── functions/
-│   │       ├── raindrop-import.ts
-│   │       ├── raindrop-extract.ts
-│   │       └── raindrop-summarize.ts
-│   └── lib/                  # ユーティリティ
-│       ├── anthropic.ts      # Claude API client
-│       ├── crypto.ts         # トークン暗号化
-│       ├── raindrop-api.ts   # Raindrop API client
-│       └── cost-tracking.ts  # コスト計算
-├── auth.ts                   # Auth.js設定
-├── docker-compose.yml        # Docker Compose設定
-├── Dockerfile                # Webアプリコンテナ
-├── drizzle.config.ts         # Drizzle設定
+│   │       ├── raindrop-import.ts    # 記事取り込み
+│   │       ├── raindrop-extract.ts   # 記事抽出
+│   │       └── raindrop-summarize.ts # 要約生成
+│   └── lib/                      # ユーティリティ
+│       ├── anthropic.ts          # Claude API client
+│       ├── crypto.ts             # トークン暗号化
+│       ├── raindrop-api.ts       # Raindrop.io API client
+│       └── cost-tracking.ts      # コスト計算
+├── auth.ts                       # Auth.js設定
+├── docker-compose.yml            # Docker Compose設定
+├── Dockerfile                    # Webアプリコンテナ
+├── drizzle.config.ts             # Drizzle設定
+├── DEPLOYMENT_CHECKLIST.md       # デプロイチェックリスト
 └── package.json
 ```
 
@@ -209,7 +240,7 @@ docker compose exec web npm run db:generate
 docker compose exec web npm run db:migrate
 
 # データベースに直接接続
-docker compose exec db psql -U postgres -d raindrop_ai
+docker compose exec db psql -U postgres -d raindary
 ```
 
 ### Inngest関数の開発
@@ -321,7 +352,7 @@ AUTH_RAINDROP_ID=<Raindrop Client ID>
 AUTH_RAINDROP_SECRET=<Raindrop Client Secret>
 
 # Database
-DATABASE_URL=postgresql://postgres:postgres@db:5432/raindrop_ai
+DATABASE_URL=postgresql://postgres:postgres@db:5432/raindary
 
 # Anthropic Claude
 ANTHROPIC_API_KEY=<sk-ant-で始まるAPIキー>
@@ -338,10 +369,10 @@ ENCRYPTION_KEY=<openssl rand -hex 32>
 
 ### デプロイ構成
 
-- **Next.jsアプリ**: Vercel
-- **データベース**: Supabase (PostgreSQL)
-- **バックグラウンドジョブ**: Inngest Cloud
-- **Extract サービス**: Next.js API Routes
+- **Next.jsアプリ**: Vercel（無料プラン対応）
+- **データベース**: Supabase (PostgreSQL 無料プラン)
+- **バックグラウンドジョブ**: Inngest Cloud（無料プラン対応）
+- **Extract サービス**: Render（無料プラン、Python/FastAPI）
 
 ### クイックデプロイ
 
