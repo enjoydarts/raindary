@@ -121,7 +121,7 @@ CREATE POLICY "Users can view own or public summaries"
   ON "summaries"
   FOR SELECT
   USING (
-    "user_id" = public.current_user_id() 
+    "user_id" = public.current_user_id()
     OR "is_public" = 1
   );
 
@@ -167,9 +167,9 @@ CREATE POLICY "Users can insert own api usage"
 -- すべてのデータにアクセス可能
 -- これはSupabaseのサービスロールキーを使用する場合に有効
 
-COMMENT ON POLICY "Users can view own data" ON "user" IS 
+COMMENT ON POLICY "Users can view own data" ON "user" IS
   'RLS: Users can only view their own user data';
-COMMENT ON POLICY "Users can view own raindrops" ON "raindrops" IS 
+COMMENT ON POLICY "Users can view own raindrops" ON "raindrops" IS
   'RLS: Users can only view their own imported articles';
-COMMENT ON POLICY "Users can view own or public summaries" ON "summaries" IS 
+COMMENT ON POLICY "Users can view own or public summaries" ON "summaries" IS
   'RLS: Users can view their own summaries or public summaries';
