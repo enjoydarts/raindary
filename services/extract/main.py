@@ -20,7 +20,7 @@ class ExtractResponse(BaseModel):
     title: str
     text: str
     length: int
-    language: str
+    language: str  # 必須フィールド
     method: str = "trafilatura"
 
 
@@ -89,12 +89,17 @@ async def extract_content(request: ExtractRequest):
         import json
         data = json.loads(result)
 
+        # データを取得してNoneチェック
+        title = data.get("title") or ""
+        text = data.get("text") or ""
+        language = data.get("language") or "unknown"  # Noneまたは空文字列を"unknown"に変換
+
         # レスポンスを構築
         return ExtractResponse(
-            title=data.get("title") or "",
-            text=data.get("text") or "",
-            length=len(data.get("text") or ""),
-            language=data.get("language") or "unknown",
+            title=title,
+            text=text,
+            length=len(text),
+            language=language,
         )
 
     except HTTPException:

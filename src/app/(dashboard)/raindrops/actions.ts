@@ -60,20 +60,22 @@ export async function generateSummary(raindropId: number, tone: string = "neutra
   const userId = session.user.id
 
   // summariesテーブルにレコードを作成（status: pending）
-  const { db } = await import("@/db")
+  const { withRLS } = await import("@/db/rls")
   const { summaries } = await import("@/db/schema")
 
-  const [summary] = await db
-    .insert(summaries)
-    .values({
-      userId,
-      raindropId,
-      tone: tone as "snarky" | "neutral" | "enthusiastic" | "casual",
-      summary: "", // 空で作成
-      model: "pending",
-      status: "pending",
-    })
-    .returning()
+  const [summary] = await withRLS(userId, async (tx) => {
+    return await tx
+      .insert(summaries)
+      .values({
+        userId,
+        raindropId,
+        tone: tone as "snarky" | "neutral" | "enthusiastic" | "casual",
+        summary: "", // 空で作成
+        model: "pending",
+        status: "pending",
+      })
+      .returning()
+  })
 
   console.log("[generateSummary] Created summary record:", summary.id)
 
@@ -106,29 +108,29 @@ export async function deleteRaindrop(raindropId: number) {
   }
 
   try {
-    const { db } = await import("@/db")
+    const { withRLS } = await import("@/db/rls")
     const { raindrops, summaries } = await import("@/db/schema")
-    const { eq, and } = await import("drizzle-orm")
+    const { eq } = await import("drizzle-orm")
 
     console.log("[deleteRaindrop] Deleting raindrop and summaries for user:", session.user.id)
 
-    // トランザクションで記事と要約を論理削除
-    await db.transaction(async (tx) => {
-      // 記事を論理削除
+    // RLS対応のトランザクションで記事と要約を論理削除
+    await withRLS(session.user.id, async (tx) => {
+      // 記事を論理削除（RLSで自動的にユーザーのデータのみ対象）
       await tx
         .update(raindrops)
         .set({
           deletedAt: new Date(),
         })
-        .where(and(eq(raindrops.id, raindropId), eq(raindrops.userId, session.user.id!)))
+        .where(eq(raindrops.id, raindropId))
 
-      // 紐づく要約も論理削除
+      // 紐づく要約も論理削除（RLSで自動的にユーザーのデータのみ対象）
       await tx
         .update(summaries)
         .set({
           deletedAt: new Date(),
         })
-        .where(and(eq(summaries.raindropId, raindropId), eq(summaries.userId, session.user.id!)))
+        .where(eq(summaries.raindropId, raindropId))
     })
 
     console.log("[deleteRaindrop] Successfully deleted raindrop:", raindropId)
