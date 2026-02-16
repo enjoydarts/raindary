@@ -2,7 +2,7 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { db } from "@/db"
 import { summaries, raindrops } from "@/db/schema"
-import { eq, desc } from "drizzle-orm"
+import { eq, desc, and } from "drizzle-orm"
 import Link from "next/link"
 import { SearchableList } from "./searchable-list"
 
@@ -35,7 +35,10 @@ export default async function SummariesPage() {
       articleExcerpt: raindrops.excerpt,
     })
     .from(summaries)
-    .innerJoin(raindrops, eq(summaries.raindropId, raindrops.id))
+    .innerJoin(
+      raindrops,
+      and(eq(summaries.raindropId, raindrops.id), eq(summaries.userId, raindrops.userId))
+    )
     .where(eq(summaries.userId, userId))
     .orderBy(desc(summaries.createdAt))
     .limit(100)

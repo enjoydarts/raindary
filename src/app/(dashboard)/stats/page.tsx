@@ -93,7 +93,10 @@ export default async function StatsPage() {
       articleTitle: raindrops.title,
     })
     .from(summaries)
-    .innerJoin(raindrops, eq(summaries.raindropId, raindrops.id))
+    .innerJoin(
+      raindrops,
+      and(eq(summaries.raindropId, raindrops.id), eq(summaries.userId, raindrops.userId))
+    )
     .where(
       and(
         eq(summaries.userId, userId),

@@ -33,7 +33,10 @@ export default async function SharedSummaryPage({
       articleExcerpt: raindrops.excerpt,
     })
     .from(summaries)
-    .innerJoin(raindrops, eq(summaries.raindropId, raindrops.id))
+    .innerJoin(
+      raindrops,
+      and(eq(summaries.raindropId, raindrops.id), eq(summaries.userId, raindrops.userId))
+    )
     .where(and(eq(summaries.id, params.id), eq(summaries.isPublic, 1)))
     .limit(1)
 
@@ -173,7 +176,10 @@ export async function generateMetadata({
       summary: summaries.summary,
     })
     .from(summaries)
-    .innerJoin(raindrops, eq(summaries.raindropId, raindrops.id))
+    .innerJoin(
+      raindrops,
+      and(eq(summaries.raindropId, raindrops.id), eq(summaries.userId, raindrops.userId))
+    )
     .where(and(eq(summaries.id, params.id), eq(summaries.isPublic, 1)))
     .limit(1)
 
