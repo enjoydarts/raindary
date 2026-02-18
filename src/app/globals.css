@@ -73,3 +73,24 @@
     @apply scale-105;
   }
 }
+
+/* Sonner Toast Styles */
+[data-sonner-toast][data-type="success"] {
+  @apply bg-green-50 border-green-500 text-green-900;
+}
+
+[data-sonner-toast][data-type="error"] {
+  @apply bg-red-50 border-red-500 text-red-900;
+}
+
+[data-sonner-toast][data-type="warning"] {
+  @apply bg-yellow-50 border-yellow-500 text-yellow-900;
+}
+
+[data-sonner-toast][data-type="info"] {
+  @apply bg-blue-50 border-blue-500 text-blue-900;
+}
+
+[data-sonner-toast] {
+  @apply border-2;
+}
