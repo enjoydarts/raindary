@@ -25,7 +25,6 @@ export function AblyNotifications({ userId }: AblyNotificationsProps) {
       toast.success("記事の取込が完了しました", {
         description: `${data.count || 0}件の記事を同期しました。ページを更新して確認してください。`,
         duration: Infinity, // 手動で閉じるまで表示
-        dismissible: true, // 閉じるボタンを表示
       })
     })
 
@@ -37,7 +36,6 @@ export function AblyNotifications({ userId }: AblyNotificationsProps) {
           ? `「${data.title}」の要約が完了しました。ページを更新して確認してください。`
           : "ページを更新して確認してください。",
         duration: Infinity, // 手動で閉じるまで表示
-        dismissible: true, // 閉じるボタンを表示
       })
     })
 
@@ -47,7 +45,6 @@ export function AblyNotifications({ userId }: AblyNotificationsProps) {
       toast.error("要約に失敗しました", {
         description: data.error || "エラーが発生しました",
         duration: Infinity, // 手動で閉じるまで表示
-        dismissible: true, // 閉じるボタンを表示
       })
     })
 

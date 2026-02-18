@@ -6,6 +6,7 @@ export function Toaster() {
   return (
     <SonnerToaster
       position="top-right"
+      closeButton
       toastOptions={{
         style: {
           background: "white",
@@ -13,6 +14,12 @@ export function Toaster() {
           color: "#0f172a",
         },
         className: "shadow-lg",
+        dismissible: true,
+        closeButtonStyle: {
+          background: "transparent",
+          border: "none",
+          color: "#64748b",
+        },
       }}
     />
   )
