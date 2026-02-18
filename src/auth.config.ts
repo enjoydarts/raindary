@@ -10,28 +10,18 @@ export const authConfig: NextAuthConfig = {
   },
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
-      console.log("[middleware][authorized] Checking authorization")
-      console.log("[middleware][authorized] Path:", nextUrl.pathname)
-      console.log("[middleware][authorized] Auth object:", JSON.stringify(auth, null, 2))
-      console.log("[middleware][authorized] Has user:", !!auth?.user)
-      console.log("[middleware][authorized] User:", auth?.user)
-
       const isLoggedIn = !!auth?.user
       const isOnDashboard = nextUrl.pathname.startsWith("/dashboard")
 
-      console.log("[middleware][authorized] isLoggedIn:", isLoggedIn)
-      console.log("[middleware][authorized] isOnDashboard:", isOnDashboard)
-
-      if (isOnDashboard) {
-        if (isLoggedIn) {
-          console.log("[middleware][authorized] Access granted to dashboard")
-          return true
-        }
-        console.log("[middleware][authorized] Access denied - redirecting to login")
-        return false
+      // 必要最小限のログのみ出力（個人情報を含まない）
+      if (isOnDashboard || !isLoggedIn) {
+        console.log("[middleware][authorized] Path:", nextUrl.pathname, "| Logged in:", isLoggedIn)
       }
 
-      console.log("[middleware][authorized] Public path - allowing access")
+      if (isOnDashboard) {
+        return isLoggedIn
+      }
+
       return true
     },
   },
