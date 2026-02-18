@@ -10,7 +10,7 @@ services:
       - "3000:3000"
     volumes:
       - .:/app
-      - /app/node_modules
+      - node_modules:/app/node_modules
       - /app/.next
     env_file:
       - .env.local
@@ -68,3 +68,4 @@ services:
 volumes:
   postgres_data:
   inngest_data:
+  node_modules:
