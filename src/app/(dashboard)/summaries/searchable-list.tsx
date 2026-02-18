@@ -243,7 +243,7 @@ export function SearchableList({ items }: SearchableListProps) {
 
                 {/* メタ情報 */}
                 <div className="flex items-center justify-between text-xs text-slate-500 mb-3">
-                  <span>{new Date(item.createdAt).toLocaleDateString("ja-JP")}</span>
+                  <span>{new Date(item.createdAt).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" })}</span>
                   {item.rating && (
                     <span className="flex items-center gap-0.5">
                       {"★".repeat(item.rating)}

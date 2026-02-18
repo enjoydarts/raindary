@@ -291,7 +291,7 @@ export default async function StatsPage() {
                     </div>
                   </div>
                   <span className="text-xs text-slate-500 whitespace-nowrap">
-                    {new Date(item.createdAt).toLocaleDateString("ja-JP")}
+                    {new Date(item.createdAt).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" })}
                   </span>
                 </div>
               </div>

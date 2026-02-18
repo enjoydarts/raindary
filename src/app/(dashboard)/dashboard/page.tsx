@@ -236,7 +236,8 @@ export default async function DashboardPage() {
                             {new Date(summary.createdAt).toLocaleDateString('ja-JP', {
                               year: 'numeric',
                               month: 'short',
-                              day: 'numeric'
+                              day: 'numeric',
+                              timeZone: 'Asia/Tokyo'
                             })}
                           </span>
                         </div>

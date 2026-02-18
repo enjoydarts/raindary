@@ -156,7 +156,8 @@ export function SearchableList({ items, collectionMap = new Map() }: SearchableL
               return new Date(date).toLocaleDateString("ja-JP", {
                 year: "numeric",
                 month: "short",
-                day: "numeric"
+                day: "numeric",
+                timeZone: "Asia/Tokyo"
               })
             }
 

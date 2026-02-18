@@ -125,6 +125,7 @@ export default async function SummaryDetailPage({
                 year: "numeric",
                 month: "long",
                 day: "numeric",
+                timeZone: "Asia/Tokyo",
               })}
             </span>
           </div>
