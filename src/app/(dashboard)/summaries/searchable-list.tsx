@@ -371,7 +371,14 @@ export function SearchableList({ items }: SearchableListProps) {
                     />
                   )}
                   {(item.status === "completed" || item.status === "failed") && (
-                    <DeleteButton summaryId={item.id} onDelete={() => router.refresh()} />
+                    <DeleteButton
+                      summaryId={item.id}
+                      onDelete={async () => {
+                        router.refresh()
+                        // リフレッシュを待つ
+                        await new Promise(resolve => setTimeout(resolve, 100))
+                      }}
+                    />
                   )}
                 </div>
               </div>

@@ -19,7 +19,7 @@ import { toast } from "sonner"
 
 interface DeleteButtonProps {
   summaryId: string
-  onDelete?: () => void
+  onDelete?: () => void | Promise<void>
 }
 
 export function DeleteButton({ summaryId, onDelete }: DeleteButtonProps) {
@@ -32,6 +32,11 @@ export function DeleteButton({ summaryId, onDelete }: DeleteButtonProps) {
     try {
       await deleteSummary(summaryId)
 
+      // ページをリフレッシュ
+      await onDelete?.()
+
+      setOpen(false)
+
       // Undoトーストを表示
       toast.success("要約を削除しました", {
         action: {
@@ -43,9 +48,6 @@ export function DeleteButton({ summaryId, onDelete }: DeleteButtonProps) {
         },
         duration: 5000,
       })
-
-      onDelete?.()
-      setOpen(false)
     } catch (err) {
       console.error("[DeleteButton] Error:", err)
       const message = err instanceof Error ? err.message : "削除に失敗しました"
