@@ -8,6 +8,7 @@ import { Footer } from "@/components/Footer"
 import { Toaster } from "@/components/Toaster"
 import { AblyNotifications } from "@/components/AblyNotifications"
 import { MobileMenu } from "@/components/MobileMenu"
+import { KeyboardShortcuts } from "@/components/KeyboardShortcuts"
 import { handleSignOut } from "./actions"
 
 export default async function DashboardLayout({
@@ -31,6 +32,8 @@ export default async function DashboardLayout({
       <Toaster />
       {/* Ablyリアルタイム通知 */}
       <AblyNotifications userId={user.id!} />
+      {/* キーボードショートカット */}
+      <KeyboardShortcuts />
 
       {/* ナビゲーションバー */}
       <nav className="bg-white shadow-sm">
