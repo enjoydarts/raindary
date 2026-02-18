@@ -7,6 +7,7 @@ import { Newspaper } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { ImportButton } from "./import-button"
 import { SearchableList } from "./searchable-list"
+import { RefreshButton } from "@/components/RefreshButton"
 import { getRaindropCollections, createCollectionMap } from "@/lib/raindrop-api"
 
 export default async function RaindropsPage() {
@@ -51,12 +52,15 @@ export default async function RaindropsPage() {
 
   return (
     <div className="px-4 sm:px-0">
-      <div className="mb-8 sm:flex sm:items-center sm:justify-between border-b border-slate-200 pb-6">
+      <div className="mb-8 sm:flex items-center sm:justify-between border-b border-slate-200 pb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">記事一覧</h1>
           <p className="mt-2 text-sm text-slate-600">{items.length}件の記事</p>
         </div>
-        <ImportButton />
+        <div className="mt-4 sm:mt-0 sm:ml-4 flex items-center gap-2 relative">
+          <RefreshButton />
+          <ImportButton />
+        </div>
       </div>
 
       {items.length === 0 ? (

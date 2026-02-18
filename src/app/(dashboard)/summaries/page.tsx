@@ -7,6 +7,7 @@ import Link from "next/link"
 import { FileText, ArrowRight } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { RefreshButton } from "@/components/RefreshButton"
 import { SearchableList } from "./searchable-list"
 
 export default async function SummariesPage() {
@@ -49,9 +50,14 @@ export default async function SummariesPage() {
 
   return (
     <div className="px-4 sm:px-0">
-      <div className="mb-8 border-b border-slate-200 pb-6">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">要約一覧</h1>
-        <p className="mt-2 text-sm text-slate-600">{items.length}件の要約</p>
+      <div className="mb-8 sm:flex items-center sm:justify-between border-b border-slate-200 pb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">要約一覧</h1>
+          <p className="mt-2 text-sm text-slate-600">{items.length}件の要約</p>
+        </div>
+        <div className="mt-4 sm:mt-0 sm:ml-4">
+          <RefreshButton />
+        </div>
       </div>
 
       {items.length === 0 ? (
