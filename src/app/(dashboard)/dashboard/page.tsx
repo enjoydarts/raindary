@@ -8,6 +8,7 @@ import { Newspaper, FileText, DollarSign, ChevronRight, ArrowRight, ClipboardLis
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { maskSession } from "@/lib/logger"
 
 const TONE_LABELS = {
   neutral: { label: "客観的", Icon: ClipboardList },
@@ -19,7 +20,7 @@ const TONE_LABELS = {
 export default async function DashboardPage() {
   const session = await auth()
 
-  console.log("[dashboard] Session from auth():", JSON.stringify(session, null, 2))
+  console.log("[dashboard] Session from auth():", JSON.stringify(maskSession(session), null, 2))
 
   // ミドルウェアで既に認証済みなので、ここでは必ず session.user が存在する
   const user = session!.user

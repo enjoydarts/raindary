@@ -5,6 +5,7 @@ import { users } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { authConfig } from "@/auth.config"
 import type { NextAuthConfig } from "next-auth"
+import { maskSession, maskUserId, maskEmail } from "@/lib/logger"
 
 // Raindrop.io OAuth プロバイダー定義
 const RaindropProvider = {
@@ -102,12 +103,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         })
       }
 
-      console.log("[auth][session] Returning session:", JSON.stringify(session, null, 2))
+      console.log("[auth][session] Returning session:", JSON.stringify(maskSession(session), null, 2))
       return session
     },
     async signIn({ user, account }) {
       console.log("[auth][signIn] ===== SIGNIN CALLBACK STARTED =====")
-      console.log("[auth][signIn] User:", user?.id, user?.email)
+      console.log("[auth][signIn] User:", maskUserId(user?.id), maskEmail(user?.email))
       console.log("[auth][signIn] Account provider:", account?.provider)
       console.log("[auth][signIn] Has access token:", !!account?.access_token)
 

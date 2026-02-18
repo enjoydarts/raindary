@@ -3,6 +3,7 @@
 import { auth } from "@/auth"
 import { inngest } from "@/inngest/client"
 import { revalidatePath } from "next/cache"
+import { maskUserId } from "@/lib/logger"
 
 export async function triggerImport() {
   console.log("[triggerImport] Function called")
@@ -15,7 +16,7 @@ export async function triggerImport() {
     throw new Error("Unauthorized")
   }
 
-  console.log("[triggerImport] Starting import for user:", session.user.id)
+  console.log("[triggerImport] Starting import for user:", maskUserId(session.user.id))
 
   // 環境変数の確認
   console.log("[triggerImport] Environment check:", {
@@ -124,7 +125,7 @@ export async function deleteRaindrop(raindropId: number) {
     const { raindrops, summaries } = await import("@/db/schema")
     const { eq } = await import("drizzle-orm")
 
-    console.log("[deleteRaindrop] Deleting raindrop and summaries for user:", session.user.id)
+    console.log("[deleteRaindrop] Deleting raindrop and summaries for user:", maskUserId(session.user.id))
 
     // RLS対応のトランザクションで記事と要約を論理削除
     await withRLS(session.user.id, async (tx) => {
