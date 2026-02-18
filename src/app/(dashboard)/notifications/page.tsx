@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { MarkAsReadButton } from "./mark-as-read-button"
 import { DeleteButton } from "./delete-button"
 import { DeleteAllButton } from "./delete-all-button"
+import { NotificationTime } from "./notification-time"
 
 const TYPE_ICONS = {
   "import:completed": Package,
@@ -118,15 +119,7 @@ export default async function NotificationsPage() {
                         </p>
                       )}
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-slate-500" suppressHydrationWarning>
-                          {new Date(notification.createdAt).toLocaleString("ja-JP", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
+                        <NotificationTime createdAt={notification.createdAt} />
                         <div className="flex items-center gap-2">
                           {isUnread && (
                             <MarkAsReadButton notificationId={notification.id} />
