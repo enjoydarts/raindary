@@ -10,10 +10,10 @@ interface AblyNotificationsProps {
 
 export function AblyNotifications({ userId }: AblyNotificationsProps) {
   useEffect(() => {
-    // Ablyクライアント作成
+    // Ablyクライアント作成（Token Authentication使用）
     const ably = new Realtime({
-      key: process.env.NEXT_PUBLIC_ABLY_KEY!,
-      clientId: userId,
+      authUrl: "/api/ably-token",
+      authMethod: "GET",
     })
 
     // ユーザー専用チャンネルを購読
