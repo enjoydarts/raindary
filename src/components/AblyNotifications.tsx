@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { Realtime } from "ably"
 import { toast } from "sonner"
 
@@ -9,6 +9,9 @@ interface AblyNotificationsProps {
 }
 
 export function AblyNotifications({ userId }: AblyNotificationsProps) {
+  // 処理済みメッセージIDを保持（重複排除用）
+  const processedMessageIds = useRef(new Set<string>())
+
   useEffect(() => {
     // Ablyクライアント作成（Token Authentication使用）
     const ably = new Realtime({
@@ -21,6 +24,13 @@ export function AblyNotifications({ userId }: AblyNotificationsProps) {
 
     // 取込完了イベント
     channel.subscribe("import:completed", (message) => {
+      // 重複チェック
+      if (processedMessageIds.current.has(message.id)) {
+        console.log(`[ably] Duplicate message ignored: ${message.id}`)
+        return
+      }
+      processedMessageIds.current.add(message.id)
+
       const data = message.data
       toast.success("記事の取込が完了しました", {
         description: `${data.count || 0}件の記事を同期しました。ページを更新して確認してください。`,
@@ -30,6 +40,13 @@ export function AblyNotifications({ userId }: AblyNotificationsProps) {
 
     // 要約完了イベント
     channel.subscribe("summary:completed", (message) => {
+      // 重複チェック
+      if (processedMessageIds.current.has(message.id)) {
+        console.log(`[ably] Duplicate message ignored: ${message.id}`)
+        return
+      }
+      processedMessageIds.current.add(message.id)
+
       const data = message.data
       toast.success("要約が完了しました", {
         description: data.title
@@ -41,6 +58,13 @@ export function AblyNotifications({ userId }: AblyNotificationsProps) {
 
     // 要約失敗イベント
     channel.subscribe("summary:failed", (message) => {
+      // 重複チェック
+      if (processedMessageIds.current.has(message.id)) {
+        console.log(`[ably] Duplicate message ignored: ${message.id}`)
+        return
+      }
+      processedMessageIds.current.add(message.id)
+
       const data = message.data
       toast.error("要約に失敗しました", {
         description: data.error || "エラーが発生しました",
