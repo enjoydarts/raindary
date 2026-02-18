@@ -14,8 +14,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { deleteSummary } from "./actions"
+import { deleteSummary, undoDeleteSummary } from "./actions"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 interface DeleteButtonProps {
   summaryId: string
@@ -23,6 +24,7 @@ interface DeleteButtonProps {
 }
 
 export function DeleteButton({ summaryId, onDelete }: DeleteButtonProps) {
+  const router = useRouter()
   const [isPending, setIsPending] = useState(false)
   const [open, setOpen] = useState(false)
 
@@ -42,8 +44,14 @@ export function DeleteButton({ summaryId, onDelete }: DeleteButtonProps) {
         action: {
           label: "元に戻す",
           onClick: async () => {
-            // 未実装: Undo機能
-            toast.info("元に戻す機能は準備中です")
+            try {
+              await undoDeleteSummary(summaryId)
+              router.refresh()
+              toast.success("削除を取り消しました")
+            } catch (err) {
+              console.error("[DeleteButton] Undo error:", err)
+              toast.error("元に戻すことができませんでした")
+            }
           },
         },
         duration: 5000,

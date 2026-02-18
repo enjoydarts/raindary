@@ -93,3 +93,26 @@ export async function deleteSummary(summaryId: string) {
   revalidatePath("/summaries")
   revalidatePath("/dashboard")
 }
+
+export async function undoDeleteSummary(summaryId: string) {
+  const session = await auth()
+
+  if (!session?.user?.id) {
+    throw new Error("Unauthorized")
+  }
+
+  const userId = session.user.id
+
+  // 削除を取り消す（deletedAtをnullに戻す）
+  await withRLS(userId, async (tx) => {
+    await tx
+      .update(summaries)
+      .set({
+        deletedAt: null,
+      })
+      .where(eq(summaries.id, summaryId))
+  })
+
+  revalidatePath("/summaries")
+  revalidatePath("/dashboard")
+}
