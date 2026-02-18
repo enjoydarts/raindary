@@ -55,13 +55,13 @@ export const raindropImport = inngest.createFunction(
     const client = new RaindropClient(accessToken)
 
     // データ取り込み
-    let totalImported = 0
-    let totalExtractRequested = 0
-
-    await step.run("import-raindrops", async () => {
+    const totalImported = await step.run("import-raindrops", async () => {
+      let count = 0
+      console.log("[raindrop-import] Starting import for user:", userId)
       for await (const items of client.fetchAllRaindrops({
         collectionId: filters?.collectionId,
       })) {
+        console.log("[raindrop-import] Fetched batch of items:", items.length)
         // データベースにupsert
         for (const item of items) {
           await db
@@ -91,13 +91,15 @@ export const raindropImport = inngest.createFunction(
               },
             })
 
-          totalImported++
+          count++
         }
       }
+      console.log("[raindrop-import] Total imported:", count)
+      return count
     })
 
     // 各記事の本文抽出イベントを発火
-    await step.run("trigger-extracts", async () => {
+    const totalExtractRequested = await step.run("trigger-extracts", async () => {
       // 未要約の記事のみ抽出対象とする（最新50件まで）
       // summariesテーブルとLEFT JOINして、要約が存在しない記事のみ取得
       const unsummarizedRaindrops = await db
@@ -116,6 +118,7 @@ export const raindropImport = inngest.createFunction(
         .orderBy(sql`${raindrops.createdAtRemote} DESC`)
         .limit(50)
 
+      let count = 0
       for (const raindrop of unsummarizedRaindrops) {
         await inngest.send({
           name: "raindrop/item.extract.requested",
@@ -124,18 +127,21 @@ export const raindropImport = inngest.createFunction(
             raindropId: raindrop.id,
           },
         })
-        totalExtractRequested++
+        count++
       }
+      return count
     })
 
     // Ably通知を送信
     await step.run("notify-user", async () => {
+      console.log("[raindrop-import] Sending notification - totalImported:", totalImported, "totalExtractRequested:", totalExtractRequested)
       await notifyUser(userId, "import:completed", {
         count: totalImported,
         extractRequested: totalExtractRequested,
       })
     })
 
+    console.log("[raindrop-import] Function completed - totalImported:", totalImported, "totalExtractRequested:", totalExtractRequested)
     return {
       success: true,
       totalImported,
