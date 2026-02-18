@@ -54,7 +54,7 @@ export default async function DashboardPage() {
         .from(apiUsage)
         .where(gte(apiUsage.createdAt, firstDayOfMonth))
 
-      // 最近の要約を取得（記事情報も含む）
+      // 最近の要約を取得（記事情報も含む、削除済みを除外）
       const recentSummaries = await tx
         .select({
           id: summaries.id,
@@ -67,6 +67,7 @@ export default async function DashboardPage() {
         })
         .from(summaries)
         .leftJoin(raindrops, sql`${summaries.raindropId} = ${raindrops.id}`)
+        .where(sql`${summaries.deletedAt} IS NULL`)
         .orderBy(sql`${summaries.updatedAt} DESC`)
         .limit(3)
 

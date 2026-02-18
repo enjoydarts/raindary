@@ -2,7 +2,7 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { withRLS } from "@/db/rls"
 import { summaries, raindrops } from "@/db/schema"
-import { eq, desc, and } from "drizzle-orm"
+import { eq, desc, and, isNull } from "drizzle-orm"
 import Link from "next/link"
 import { FileText, ArrowRight } from "lucide-react"
 import { Card } from "@/components/ui/card"
@@ -44,6 +44,7 @@ export default async function SummariesPage() {
         raindrops,
         and(eq(summaries.raindropId, raindrops.id), eq(summaries.userId, raindrops.userId))
       )
+      .where(isNull(summaries.deletedAt))
       .orderBy(desc(summaries.updatedAt))
       .limit(100)
   })
