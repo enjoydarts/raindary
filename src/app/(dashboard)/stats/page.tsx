@@ -27,7 +27,7 @@ export default async function StatsPage() {
   thisMonthStart.setHours(0, 0, 0, 0)
 
   // RLS対応: すべての統計データを取得
-  const { stats, monthlyUsage, summariesByTone, ratingDistribution, recentSummaries } =
+  const { stats, monthlyUsage, monthlyUsageByProvider, summariesByTone, ratingDistribution, recentSummaries } =
     await withRLS(userId, async (tx) => {
       // 1. 基本統計（RLSで自動的にユーザーのデータのみ取得）
       const [stats] = await tx
@@ -39,7 +39,7 @@ export default async function StatsPage() {
         .leftJoin(summaries, eq(raindrops.id, summaries.raindropId))
         .where(isNull(raindrops.deletedAt))
 
-      // 2. 今月のAPI使用量とコスト
+      // 2. 今月のAPI使用量とコスト（全体）
       const monthlyUsage = await tx
         .select({
           totalCost: sql<string>`COALESCE(SUM(${apiUsage.costUsd}), 0)`,
@@ -52,6 +52,18 @@ export default async function StatsPage() {
         })
         .from(apiUsage)
         .where(gte(apiUsage.createdAt, thisMonthStart))
+
+      // 2-2. プロバイダー別の使用量とコスト
+      const monthlyUsageByProvider = await tx
+        .select({
+          provider: apiUsage.apiProvider,
+          cost: sql<string>`COALESCE(SUM(${apiUsage.costUsd}), 0)`,
+          inputTokens: sql<number>`COALESCE(SUM(${apiUsage.inputTokens}), 0)`.mapWith(Number),
+          outputTokens: sql<number>`COALESCE(SUM(${apiUsage.outputTokens}), 0)`.mapWith(Number),
+        })
+        .from(apiUsage)
+        .where(gte(apiUsage.createdAt, thisMonthStart))
+        .groupBy(apiUsage.apiProvider)
 
       // 3. トーン別要約数
       const summariesByTone = await tx
@@ -99,12 +111,21 @@ export default async function StatsPage() {
         .orderBy(desc(summaries.updatedAt))
         .limit(5)
 
-      return { stats, monthlyUsage, summariesByTone, ratingDistribution, recentSummaries }
+      return { stats, monthlyUsage, monthlyUsageByProvider, summariesByTone, ratingDistribution, recentSummaries }
     })
 
   const totalCost = parseFloat(monthlyUsage[0]?.totalCost || "0")
   const totalInputTokens = monthlyUsage[0]?.totalInputTokens || 0
   const totalOutputTokens = monthlyUsage[0]?.totalOutputTokens || 0
+
+  // プロバイダー別のコストとトークンを計算
+  const anthropicUsage = monthlyUsageByProvider.find((u) => u.provider === "anthropic")
+  const openaiUsage = monthlyUsageByProvider.find((u) => u.provider === "openai")
+
+  const anthropicCost = parseFloat(anthropicUsage?.cost || "0")
+  const openaiCost = parseFloat(openaiUsage?.cost || "0")
+  const anthropicTokens = (anthropicUsage?.inputTokens || 0) + (anthropicUsage?.outputTokens || 0)
+  const openaiTokens = (openaiUsage?.inputTokens || 0) + (openaiUsage?.outputTokens || 0)
 
   return (
     <div className="px-4 sm:px-0">
@@ -150,9 +171,24 @@ export default async function StatsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div>
+            <div className="flex-1">
               <p className="text-sm font-medium text-slate-600">今月のコスト</p>
-              <p className="text-2xl font-bold text-slate-900">${totalCost.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-slate-900">${totalCost.toFixed(4)}</p>
+              {/* プロバイダー別内訳 */}
+              <div className="mt-2 space-y-0.5">
+                {anthropicCost > 0 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Claude:</span>
+                    <span className="font-medium text-slate-700">${anthropicCost.toFixed(4)}</span>
+                  </div>
+                )}
+                {openaiCost > 0 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500">OpenAI:</span>
+                    <span className="font-medium text-slate-700">${openaiCost.toFixed(4)}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -164,11 +200,26 @@ export default async function StatsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <div>
+            <div className="flex-1">
               <p className="text-sm font-medium text-slate-600">今月のトークン</p>
               <p className="text-2xl font-bold text-slate-900">
                 {((totalInputTokens + totalOutputTokens) / 1000).toFixed(1)}K
               </p>
+              {/* プロバイダー別内訳 */}
+              <div className="mt-2 space-y-0.5">
+                {anthropicTokens > 0 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Claude:</span>
+                    <span className="font-medium text-slate-700">{(anthropicTokens / 1000).toFixed(1)}K</span>
+                  </div>
+                )}
+                {openaiTokens > 0 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500">OpenAI:</span>
+                    <span className="font-medium text-slate-700">{(openaiTokens / 1000).toFixed(1)}K</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
