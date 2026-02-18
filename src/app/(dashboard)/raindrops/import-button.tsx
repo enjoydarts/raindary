@@ -1,9 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Loader2, Check, AlertCircle } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Tooltip,
   TooltipContent,
@@ -11,74 +10,49 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { triggerImport } from "./actions"
+import { toast } from "sonner"
 
 export function ImportButton() {
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
 
   const handleImport = async () => {
     setLoading(true)
-    setError(null)
-    setSuccess(false)
 
     try {
       console.log("[ImportButton] Calling triggerImport...")
       await triggerImport()
       console.log("[ImportButton] Import triggered successfully")
-      setSuccess(true)
-      setTimeout(() => setSuccess(false), 3000)
+      toast.success("記事の取り込みを開始しました", {
+        description: "処理には数分かかる場合があります。完了時に通知します。",
+      })
     } catch (err) {
       console.error("[ImportButton] Error:", err)
       const message = err instanceof Error ? err.message : "インポートに失敗しました"
-      setError(message)
+      toast.error("エラーが発生しました", {
+        description: message,
+      })
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              onClick={handleImport}
-              disabled={loading}
-              className="bg-indigo-600 hover:bg-indigo-700"
-            >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {loading ? "取り込み中..." : "今すぐ取り込む"}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Raindrop.ioから最新の記事を同期</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-
-      {/* メッセージ表示エリア（絶対配置） */}
-      {(error || success) && (
-        <div className="absolute top-full left-0 right-0 mt-2 z-10">
-          {error && (
-            <Alert variant="destructive" className="bg-red-50 border-red-200">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-sm">
-                <strong>エラー:</strong> {error}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {success && (
-            <Alert className="bg-green-50 border-green-200 text-green-800">
-              <Check className="h-4 w-4 text-green-800" />
-              <AlertDescription className="text-sm">
-                取り込みを開始しました。処理には数分かかる場合があります。
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
-      )}
-    </>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            onClick={handleImport}
+            disabled={loading}
+            className="bg-indigo-600 hover:bg-indigo-700"
+          >
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {loading ? "取り込み中..." : "今すぐ取り込む"}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Raindrop.ioから最新の記事を同期</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
