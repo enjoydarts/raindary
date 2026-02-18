@@ -42,6 +42,8 @@ services:
     image: inngest/inngest:latest
     ports:
       - "8288:8288"
+    volumes:
+      - inngest_data:/root/.config/inngest
     environment:
       - INNGEST_DEV=1
     command: ["inngest", "dev"]
@@ -65,3 +67,4 @@ services:
 
 volumes:
   postgres_data:
+  inngest_data:
