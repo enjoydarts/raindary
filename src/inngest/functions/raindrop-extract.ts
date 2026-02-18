@@ -100,15 +100,12 @@ export const raindropExtract = inngest.createFunction(
       throw error
     }
 
-    // 抽出結果をメタデータとして保存（将来的にはextracted_textカラムを追加）
-    // 現状はexcerptを更新
+    // 抽出結果を全文保存
     await step.run("save-extracted-text", async () => {
-      const excerpt = extractResult.text.substring(0, 500) // 最初の500文字
-
       await db
         .update(raindrops)
         .set({
-          excerpt,
+          excerpt: extractResult.text, // 全文を保存
         })
         .where(and(eq(raindrops.userId, userId), eq(raindrops.id, raindropId)))
     })
