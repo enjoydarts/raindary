@@ -34,6 +34,7 @@ export function KeyboardShortcutsHelp() {
     { keys: ["d"], description: "ダッシュボードへ移動" },
     { keys: ["r"], description: "記事一覧へ移動" },
     { keys: ["s"], description: "要約一覧へ移動" },
+    { keys: ["j"], description: "ジョブ管理へ移動" },
     { keys: ["n"], description: "通知へ移動" },
     { keys: ["t"], description: "統計へ移動" },
     { keys: ["?"], description: "このヘルプを表示" },

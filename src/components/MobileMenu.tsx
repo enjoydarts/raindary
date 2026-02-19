@@ -2,7 +2,17 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Menu, LayoutDashboard, Newspaper, FileText, BarChart3, Bell, Settings, LogOut } from "lucide-react"
+import {
+  Menu,
+  LayoutDashboard,
+  Newspaper,
+  FileText,
+  BriefcaseBusiness,
+  BarChart3,
+  Bell,
+  Settings,
+  LogOut,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -36,6 +46,11 @@ export function MobileMenu({ userName, userEmail }: MobileMenuProps) {
       href: "/summaries",
       icon: FileText,
       label: "要約一覧",
+    },
+    {
+      href: "/jobs",
+      icon: BriefcaseBusiness,
+      label: "ジョブ管理",
     },
     {
       href: "/stats",

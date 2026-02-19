@@ -54,6 +54,13 @@ export function KeyboardShortcuts() {
         return
       }
 
+      // g + j: ジョブ管理
+      if (e.key === "j" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault()
+        router.push("/jobs")
+        return
+      }
+
       // g + n: 通知
       if (e.key === "n" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
         e.preventDefault()
