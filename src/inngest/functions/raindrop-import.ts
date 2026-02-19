@@ -1,7 +1,7 @@
 import { inngest } from "../client"
 import { db } from "@/db"
 import { users, raindrops, summaries } from "@/db/schema"
-import { eq, isNull, sql } from "drizzle-orm"
+import { eq, isNull, sql, inArray, and } from "drizzle-orm"
 import { decrypt } from "@/lib/crypto"
 import { RaindropClient } from "@/lib/raindrop"
 import { NonRetriableError } from "inngest"
@@ -74,9 +74,7 @@ export const raindropImport = inngest.createFunction(
             await db
               .select({ id: raindrops.id })
               .from(raindrops)
-              .where(
-                sql`${raindrops.userId} = ${userId} AND ${raindrops.id} = ANY(${itemIds})`
-              )
+              .where(and(eq(raindrops.userId, userId), inArray(raindrops.id, itemIds)))
           ).map((r) => r.id)
         )
 
