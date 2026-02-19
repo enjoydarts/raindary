@@ -1,6 +1,7 @@
 import { Realtime } from "ably"
 import { db } from "@/db"
-import { notifications } from "@/db/schema"
+import { notifications, users } from "@/db/schema"
+import { eq } from "drizzle-orm"
 
 /**
  * Ablyサーバークライアント（Inngest関数から使用）
@@ -78,6 +79,17 @@ export async function notifyUser(
   eventName: string,
   data: Record<string, any>
 ) {
+  const [user] = await db
+    .select({ notificationsEnabled: users.notificationsEnabled })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+
+  if (user && user.notificationsEnabled === 0) {
+    console.log(`[ably] Notifications disabled for user:${userId}, skip ${eventName}`)
+    return
+  }
+
   const { title, description } = getNotificationContent(eventName, data)
 
   // DBに通知を保存

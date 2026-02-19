@@ -18,6 +18,18 @@ export async function triggerImport() {
 
   console.log("[triggerImport] Starting import for user:", maskUserId(session.user.id))
 
+  const { withRLS } = await import("@/db/rls")
+  const { users } = await import("@/db/schema")
+
+  const [userSettings] = await withRLS(session.user.id, async (tx) => {
+    return await tx
+      .select({
+        defaultImportCollectionId: users.defaultImportCollectionId,
+      })
+      .from(users)
+      .limit(1)
+  })
+
   // 環境変数の確認
   console.log("[triggerImport] Environment check:", {
     hasEventKey: !!process.env.INNGEST_EVENT_KEY,
@@ -32,6 +44,10 @@ export async function triggerImport() {
       name: "raindrop/import.requested",
       data: {
         userId: session.user.id,
+        filters:
+          userSettings?.defaultImportCollectionId
+            ? { collectionId: userSettings.defaultImportCollectionId }
+            : undefined,
       },
     })
     console.log("[triggerImport] Inngest event sent successfully:", JSON.stringify(result))

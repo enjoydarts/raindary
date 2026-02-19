@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { inngest } from "@/inngest/client"
+import { db } from "@/db"
+import { users } from "@/db/schema"
+import { eq } from "drizzle-orm"
 
 /**
  * Raindrop同期を手動でトリガー
@@ -20,13 +23,28 @@ export async function POST(request: NextRequest) {
 
     const userId = session.user.id
 
+    const [user] = await db
+      .select({ defaultImportCollectionId: users.defaultImportCollectionId })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1)
+
     // リクエストボディから設定を取得（オプション）
     let filters = {}
     try {
       const body = await request.json()
       filters = body.filters || {}
+      if (
+        !(filters as { collectionId?: number }).collectionId &&
+        user?.defaultImportCollectionId
+      ) {
+        filters = { ...filters, collectionId: user.defaultImportCollectionId }
+      }
     } catch {
       // ボディがない場合はデフォルト設定
+      if (user?.defaultImportCollectionId) {
+        filters = { collectionId: user.defaultImportCollectionId }
+      }
     }
 
     // Inngestイベントを送信

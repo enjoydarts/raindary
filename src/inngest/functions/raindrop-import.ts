@@ -7,6 +7,8 @@ import { RaindropClient } from "@/lib/raindrop"
 import { NonRetriableError } from "inngest"
 import { notifyUser } from "@/lib/ably"
 
+type SummaryTone = "snarky" | "neutral" | "enthusiastic" | "casual"
+
 /**
  * Raindrop データ取り込み関数
  *
@@ -169,12 +171,20 @@ export const raindropImport = inngest.createFunction(
         .where(and(eq(raindrops.userId, userId), inArray(raindrops.id, newRaindropIds)))
 
       let count = 0
+      const tone: SummaryTone =
+        user.defaultSummaryTone === "snarky" ||
+        user.defaultSummaryTone === "enthusiastic" ||
+        user.defaultSummaryTone === "casual"
+          ? user.defaultSummaryTone
+          : "neutral"
+
       for (const raindrop of newRaindropsToExtract) {
         await inngest.send({
           name: "raindrop/item.extract.requested",
           data: {
             userId: userId,
             raindropId: raindrop.id,
+            tone,
           },
         })
         count++

@@ -64,6 +64,13 @@
       "when": 1775815000000,
       "tag": "0008_add_budget_sync_feedback",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1775817000000,
+      "tag": "0009_add_user_settings",
+      "breakpoints": true
     }
   ]
 }
