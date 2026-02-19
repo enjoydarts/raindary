@@ -4,11 +4,6 @@
  */
 
 import { cosineSimilarity } from "./embeddings"
-import OpenAI from "openai"
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
 
 export interface ClusterResult {
   clusters: number[]
@@ -164,24 +159,45 @@ export async function assignThemeLabels(
     const representativeSummaries = clusterItems.slice(0, 5).map((item) => item.summary)
 
     try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content:
-              "あなたは記事要約のテーマを命名する専門家です。与えられた要約群の共通テーマを1-2単語の日本語で簡潔に命名してください。例: TypeScript, セキュリティ, データベース設計, UI/UX, DevOps など。テーマ名のみを返してください。",
-          },
-          {
-            role: "user",
-            content: `以下の要約群の共通テーマを1-2単語で命名してください:\n\n${representativeSummaries.join("\n\n")}`,
-          },
-        ],
-        temperature: 0.3,
-        max_tokens: 20,
+      const apiKey = process.env.OPENAI_API_KEY
+
+      if (!apiKey) {
+        console.warn("[clustering] OPENAI_API_KEY not set, using default theme")
+        clusterThemes.set(clusterId, "その他")
+        continue
+      }
+
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content:
+                "あなたは記事要約のテーマを命名する専門家です。与えられた要約群の共通テーマを1-2単語の日本語で簡潔に命名してください。例: TypeScript, セキュリティ, データベース設計, UI/UX, DevOps など。テーマ名のみを返してください。",
+            },
+            {
+              role: "user",
+              content: `以下の要約群の共通テーマを1-2単語で命名してください:\n\n${representativeSummaries.join("\n\n")}`,
+            },
+          ],
+          temperature: 0.3,
+          max_tokens: 20,
+        }),
       })
 
-      const themeName = response.choices[0]?.message?.content?.trim() || "その他"
+      if (!response.ok) {
+        const error = await response.text()
+        throw new Error(`OpenAI API error: ${response.status} ${error}`)
+      }
+
+      const data = await response.json()
+      const themeName = data.choices[0]?.message?.content?.trim() || "その他"
       clusterThemes.set(clusterId, themeName)
 
       console.log(`[clustering] Cluster ${clusterId} theme: ${themeName}`)
