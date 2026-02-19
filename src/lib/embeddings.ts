@@ -8,14 +8,15 @@ const EMBEDDING_MODEL = "text-embedding-3-small"
 export async function generateEmbedding(
   text: string,
   options?: {
+    apiKey?: string
     userId?: string
     summaryId?: string
   }
 ): Promise<number[]> {
-  const apiKey = process.env.OPENAI_API_KEY
+  const apiKey = options?.apiKey
 
   if (!apiKey) {
-    console.warn("[embeddings] OPENAI_API_KEY not set, skipping embedding generation")
+    console.warn("[embeddings] OpenAI API key not set, skipping embedding generation")
     return []
   }
 

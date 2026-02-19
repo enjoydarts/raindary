@@ -21,6 +21,8 @@ export default async function SettingsPage() {
         defaultSummaryTone: users.defaultSummaryTone,
         notificationsEnabled: users.notificationsEnabled,
         defaultImportCollectionId: users.defaultImportCollectionId,
+        hasAnthropicApiKey: users.anthropicApiKeyEncrypted,
+        hasOpenaiApiKey: users.openaiApiKeyEncrypted,
         raindropAccessToken: users.raindropAccessToken,
       })
       .from(users)
@@ -59,6 +61,8 @@ export default async function SettingsPage() {
         initialTone={userSettings.defaultSummaryTone || "neutral"}
         initialNotificationsEnabled={userSettings.notificationsEnabled === 1}
         initialCollectionId={userSettings.defaultImportCollectionId || null}
+        hasAnthropicApiKey={Boolean(userSettings.hasAnthropicApiKey)}
+        hasOpenaiApiKey={Boolean(userSettings.hasOpenaiApiKey)}
         collections={collections}
       />
     </div>

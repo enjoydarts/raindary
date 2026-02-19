@@ -1,11 +1,12 @@
 import { inngest } from "../client"
 import { db } from "@/db"
-import { summaries } from "@/db/schema"
+import { summaries, users } from "@/db/schema"
 import { eq, and, isNotNull, sql } from "drizzle-orm"
 import { kmeans, assignThemeLabels } from "@/lib/clustering"
 import { cosineSimilarity } from "@/lib/embeddings"
 import { NonRetriableError } from "inngest"
 import { notifyUser } from "@/lib/ably"
+import { decrypt } from "@/lib/crypto"
 
 /**
  * テーマ自動分類関数
@@ -24,6 +25,26 @@ export const classifyThemes = inngest.createFunction(
   async ({ event, step }) => {
     const { userId, force = false } = event.data
     const BATCH_SIZE = 50
+
+    const apiKeys = await step.run("fetch-user-api-keys", async () => {
+      const [user] = await db
+        .select({
+          openaiApiKeyEncrypted: users.openaiApiKeyEncrypted,
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1)
+
+      if (!user) {
+        throw new NonRetriableError(`User not found: ${userId}`)
+      }
+
+      return {
+        openaiApiKey: user.openaiApiKeyEncrypted
+          ? decrypt(user.openaiApiKeyEncrypted)
+          : undefined,
+      }
+    })
 
     try {
       // 強制再分類の場合、全要約のthemeをnullにリセット
@@ -116,7 +137,11 @@ export const classifyThemes = inngest.createFunction(
               id: s.id,
               summary: s.summary,
             }))
-            const themes = await assignThemeLabels(clusterAssignments, summaryData)
+            const themes = await assignThemeLabels(
+              clusterAssignments,
+              summaryData,
+              apiKeys.openaiApiKey
+            )
 
             // MapをArray形式に変換（Inngestはシリアライズ可能な形式が必要）
             return {
@@ -284,7 +309,11 @@ export const classifyThemes = inngest.createFunction(
             id: s.id,
             summary: s.summary,
           }))
-          const themes = await assignThemeLabels(clusterAssignments, summaryData)
+          const themes = await assignThemeLabels(
+            clusterAssignments,
+            summaryData,
+            apiKeys.openaiApiKey
+          )
 
           return Array.from(themes.entries())
         })

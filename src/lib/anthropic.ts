@@ -3,19 +3,21 @@ import Anthropic from "@anthropic-ai/sdk"
 /**
  * Anthropic Claude クライアント
  */
-let anthropicClient: Anthropic | null = null
+const anthropicClientCache = new Map<string, Anthropic>()
 
-function getAnthropicClient(): Anthropic {
-  const apiKey = process.env.ANTHROPIC_API_KEY
+function getAnthropicClient(apiKey: string): Anthropic {
   if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY environment variable is not set")
+    throw new Error("Anthropic API key is required")
   }
 
-  if (!anthropicClient) {
-    anthropicClient = new Anthropic({ apiKey })
+  const cached = anthropicClientCache.get(apiKey)
+  if (cached) {
+    return cached
   }
 
-  return anthropicClient
+  const client = new Anthropic({ apiKey })
+  anthropicClientCache.set(apiKey, client)
+  return client
 }
 
 /**
@@ -33,6 +35,7 @@ export type ModelType = (typeof MODELS)[keyof typeof MODELS]
  * JSON形式でメッセージを送信
  */
 export async function sendJsonMessage<T = any>(params: {
+  apiKey: string
   model: ModelType
   system?: string
   messages: Anthropic.MessageParam[]
@@ -44,9 +47,9 @@ export async function sendJsonMessage<T = any>(params: {
     output_tokens: number
   }
 }> {
-  const { model, system, messages, maxTokens = 2048 } = params
+  const { apiKey, model, system, messages, maxTokens = 2048 } = params
 
-  const response = await getAnthropicClient().messages.create({
+  const response = await getAnthropicClient(apiKey).messages.create({
     model,
     max_tokens: maxTokens,
     system,

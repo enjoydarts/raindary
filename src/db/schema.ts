@@ -50,6 +50,8 @@ export const users = pgTable("user", {
   raindropTokenExpiresAt: timestamp("raindrop_token_expires_at", {
     withTimezone: true,
   }),
+  anthropicApiKeyEncrypted: text("anthropic_api_key_encrypted"),
+  openaiApiKeyEncrypted: text("openai_api_key_encrypted"),
   defaultSummaryTone: text("default_summary_tone").default("neutral").notNull(),
   notificationsEnabled: integer("notifications_enabled").default(1).notNull(), // 0: OFF, 1: ON
   defaultImportCollectionId: bigint("default_import_collection_id", { mode: "number" }),

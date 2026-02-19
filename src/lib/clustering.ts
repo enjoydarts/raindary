@@ -134,7 +134,8 @@ export function kmeans(
  */
 export async function assignThemeLabels(
   clusters: number[],
-  summaries: { id: string; summary: string }[]
+  summaries: { id: string; summary: string }[],
+  apiKey?: string
 ): Promise<Map<string, string>> {
   const k = Math.max(...clusters) + 1
   const themeMap = new Map<string, string>()
@@ -159,10 +160,8 @@ export async function assignThemeLabels(
     const representativeSummaries = clusterItems.slice(0, 5).map((item) => item.summary)
 
     try {
-      const apiKey = process.env.OPENAI_API_KEY
-
       if (!apiKey) {
-        console.warn("[clustering] OPENAI_API_KEY not set, using default theme")
+        console.warn("[clustering] OpenAI API key not set, using default theme")
         clusterThemes.set(clusterId, "その他")
         continue
       }

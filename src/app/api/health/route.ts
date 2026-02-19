@@ -99,7 +99,6 @@ function checkEnvironmentVariables() {
     "DATABASE_URL",
     "AUTH_SECRET",
     "NEXTAUTH_URL",
-    "ANTHROPIC_API_KEY",
     "INNGEST_EVENT_KEY",
     "INNGEST_SIGNING_KEY",
   ]

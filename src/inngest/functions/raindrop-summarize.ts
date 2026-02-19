@@ -1,6 +1,6 @@
 import { inngest } from "../client"
 import { db } from "@/db"
-import { raindrops, summaries } from "@/db/schema"
+import { raindrops, summaries, users } from "@/db/schema"
 import { eq, and, desc, isNotNull } from "drizzle-orm"
 import { NonRetriableError } from "inngest"
 import { sendJsonMessage, MODELS } from "@/lib/anthropic"
@@ -14,6 +14,7 @@ import {
 } from "../prompts/generate-summary"
 import { notifyUser } from "@/lib/ably"
 import { generateEmbedding } from "@/lib/embeddings"
+import { decrypt } from "@/lib/crypto"
 
 /**
  * AI要約生成関数
@@ -73,6 +74,34 @@ export const raindropSummarize = inngest.createFunction(
   { event: "raindrop/item.summarize.requested" },
   async ({ event, step }) => {
     const { userId, raindropId, tone, summaryId } = event.data
+
+    const apiKeys = await step.run("fetch-user-api-keys", async () => {
+      const [user] = await db
+        .select({
+          anthropicApiKeyEncrypted: users.anthropicApiKeyEncrypted,
+          openaiApiKeyEncrypted: users.openaiApiKeyEncrypted,
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1)
+
+      if (!user) {
+        throw new NonRetriableError(`User not found: ${userId}`)
+      }
+
+      if (!user.anthropicApiKeyEncrypted) {
+        throw new NonRetriableError(
+          "Anthropic API key is not configured. Please set it in /settings."
+        )
+      }
+
+      return {
+        anthropicApiKey: decrypt(user.anthropicApiKeyEncrypted),
+        openaiApiKey: user.openaiApiKeyEncrypted
+          ? decrypt(user.openaiApiKeyEncrypted)
+          : undefined,
+      }
+    })
 
     // Raindropを取得
     const raindrop = await step.run("fetch-raindrop", async () => {
@@ -178,6 +207,7 @@ export const raindropSummarize = inngest.createFunction(
       const { system, userMessage } = buildExtractFactsPrompt(raindrop.excerpt!)
 
       const response = await sendJsonMessage<ExtractedFacts>({
+        apiKey: apiKeys.anthropicApiKey,
         model: MODELS.HAIKU,
         system,
         messages: [{ role: "user", content: userMessage }],
@@ -229,6 +259,7 @@ export const raindropSummarize = inngest.createFunction(
       )
 
       const response = await sendJsonMessage<GeneratedSummary>({
+        apiKey: apiKeys.anthropicApiKey,
         model: MODELS.SONNET,
         system,
         messages: [{ role: "user", content: userMessage }],
@@ -253,6 +284,7 @@ export const raindropSummarize = inngest.createFunction(
         // 要約テキスト + 記事タイトルで埋め込みを生成
         const textForEmbedding = `${raindrop.title}\n\n${result.summary}`
         return await generateEmbedding(textForEmbedding, {
+          apiKey: apiKeys.openaiApiKey,
           userId,
           summaryId: summary.id!,
         })

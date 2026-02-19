@@ -16,6 +16,8 @@ interface SettingsFormProps {
   initialTone: string
   initialNotificationsEnabled: boolean
   initialCollectionId: number | null
+  hasAnthropicApiKey: boolean
+  hasOpenaiApiKey: boolean
   collections: CollectionOption[]
 }
 
@@ -24,6 +26,8 @@ export function SettingsForm({
   initialTone,
   initialNotificationsEnabled,
   initialCollectionId,
+  hasAnthropicApiKey,
+  hasOpenaiApiKey,
   collections,
 }: SettingsFormProps) {
   const [monthlyBudgetUsd, setMonthlyBudgetUsd] = useState(
@@ -36,6 +40,10 @@ export function SettingsForm({
   const [defaultImportCollectionId, setDefaultImportCollectionId] = useState(
     initialCollectionId ? String(initialCollectionId) : ""
   )
+  const [anthropicApiKey, setAnthropicApiKey] = useState("")
+  const [openaiApiKey, setOpenaiApiKey] = useState("")
+  const [clearAnthropicApiKey, setClearAnthropicApiKey] = useState(false)
+  const [clearOpenaiApiKey, setClearOpenaiApiKey] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   const handleSave = () => {
@@ -46,6 +54,10 @@ export function SettingsForm({
           defaultSummaryTone,
           notificationsEnabled,
           defaultImportCollectionId,
+          anthropicApiKey,
+          openaiApiKey,
+          clearAnthropicApiKey,
+          clearOpenaiApiKey,
         })
         toast.success("設定を保存しました")
       } catch (error) {
@@ -109,6 +121,55 @@ export function SettingsForm({
                 </option>
               ))}
             </select>
+          </label>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-900">APIキー設定</h2>
+        <p className="mt-1 text-xs text-slate-500">
+          APIキーは暗号化して保存されます。未入力で保存すると既存値を保持します。
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-slate-700">
+              Anthropic API Key
+            </span>
+            <Input
+              type="password"
+              value={anthropicApiKey}
+              onChange={(e) => setAnthropicApiKey(e.target.value)}
+              placeholder={hasAnthropicApiKey ? "設定済み（更新する場合のみ入力）" : "sk-ant-..."}
+              disabled={clearAnthropicApiKey}
+            />
+            <label className="mt-2 flex items-center gap-2 text-xs text-slate-600">
+              <input
+                type="checkbox"
+                checked={clearAnthropicApiKey}
+                onChange={(e) => setClearAnthropicApiKey(e.target.checked)}
+              />
+              Anthropic APIキーを削除
+            </label>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-slate-700">
+              OpenAI API Key
+            </span>
+            <Input
+              type="password"
+              value={openaiApiKey}
+              onChange={(e) => setOpenaiApiKey(e.target.value)}
+              placeholder={hasOpenaiApiKey ? "設定済み（更新する場合のみ入力）" : "sk-..."}
+              disabled={clearOpenaiApiKey}
+            />
+            <label className="mt-2 flex items-center gap-2 text-xs text-slate-600">
+              <input
+                type="checkbox"
+                checked={clearOpenaiApiKey}
+                onChange={(e) => setClearOpenaiApiKey(e.target.checked)}
+              />
+              OpenAI APIキーを削除
+            </label>
           </label>
         </div>
       </div>

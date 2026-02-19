@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { db } from "@/db"
-import { summaries, raindrops } from "@/db/schema"
-import { eq, and, sql, desc, isNotNull } from "drizzle-orm"
+import { summaries, raindrops, users } from "@/db/schema"
+import { eq, and, sql } from "drizzle-orm"
 import { generateEmbedding } from "@/lib/embeddings"
+import { decrypt } from "@/lib/crypto"
 
 const QUERY_CACHE_TTL_MS = 1000 * 60 * 30
 const queryEmbeddingCache = new Map<string, { embedding: number[]; expiresAt: number }>()
@@ -26,6 +27,21 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10", 10)
     const themeFilter = searchParams.get("theme") // テーマフィルター
 
+    const [user] = await db
+      .select({ openaiApiKeyEncrypted: users.openaiApiKeyEncrypted })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1)
+
+    if (!user?.openaiApiKeyEncrypted) {
+      return NextResponse.json(
+        { error: "OpenAI API key is not configured. Please set it in /settings." },
+        { status: 400 }
+      )
+    }
+
+    const openaiApiKey = decrypt(user.openaiApiKeyEncrypted)
+
     if (!query || query.trim().length === 0) {
       return NextResponse.json(
         { error: "Query parameter 'q' is required" },
@@ -41,7 +57,7 @@ export async function GET(request: NextRequest) {
     if (cached && cached.expiresAt > Date.now()) {
       queryEmbedding = cached.embedding
     } else {
-      queryEmbedding = await generateEmbedding(query.trim())
+      queryEmbedding = await generateEmbedding(query.trim(), { apiKey: openaiApiKey })
       queryEmbeddingCache.set(normalizedQuery, {
         embedding: queryEmbedding,
         expiresAt: Date.now() + QUERY_CACHE_TTL_MS,
