@@ -14,13 +14,21 @@ export function ClassifyThemesButton() {
     setIsClassifying(true)
 
     try {
+      console.log("[ClassifyThemesButton] Sending request to /api/classify-themes")
       const res = await fetch("/api/classify-themes", {
         method: "POST",
       })
 
+      console.log("[ClassifyThemesButton] Response status:", res.status)
+
       if (!res.ok) {
+        const errorData = await res.json()
+        console.error("[ClassifyThemesButton] Error response:", errorData)
         throw new Error("テーマ分類の開始に失敗しました")
       }
+
+      const data = await res.json()
+      console.log("[ClassifyThemesButton] Success response:", data)
 
       toast.success("テーマ分類を開始しました", {
         description: "バックグラウンドで処理中です。完了までお待ちください。",
@@ -30,6 +38,7 @@ export function ClassifyThemesButton() {
       // ページをリフレッシュ
       router.refresh()
     } catch (error) {
+      console.error("[ClassifyThemesButton] Error:", error)
       toast.error("エラーが発生しました", {
         description: error instanceof Error ? error.message : "不明なエラー",
       })
