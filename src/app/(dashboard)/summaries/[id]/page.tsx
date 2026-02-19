@@ -2,12 +2,13 @@ import { auth } from "@/auth"
 import { redirect, notFound } from "next/navigation"
 import { withRLS } from "@/db/rls"
 import { summaries, raindrops } from "@/db/schema"
-import { eq, and } from "drizzle-orm"
+import { eq, and, sql } from "drizzle-orm"
 import Image from "next/image"
 import Link from "next/link"
 import { ClipboardList, Zap, Flame, MessageCircle, FileText } from "lucide-react"
 import { getRelatedSummaries } from "@/lib/related-summaries"
 import { RelatedSummaries } from "./related-summaries"
+import { ThemeEditor } from "./theme-editor"
 
 const TONE_LABELS = {
   neutral: { label: "客観的", Icon: ClipboardList },
@@ -37,6 +38,7 @@ export default async function SummaryDetailPage({
         id: summaries.id,
         summary: summaries.summary,
         tone: summaries.tone,
+        theme: summaries.theme,
         rating: summaries.rating,
         ratingReason: summaries.ratingReason,
         model: summaries.model,
@@ -59,6 +61,15 @@ export default async function SummaryDetailPage({
   if (!summary) {
     notFound()
   }
+
+  // 既存テーマ一覧を取得
+  const availableThemes = await withRLS(userId, async (tx) => {
+    const themes = await tx
+      .selectDistinct({ theme: summaries.theme })
+      .from(summaries)
+      .where(and(eq(summaries.userId, userId), sql`${summaries.theme} IS NOT NULL`))
+    return themes.map(t => t.theme!).filter(t => t)
+  })
 
   // 関連記事を取得
   const relatedSummaries = await getRelatedSummaries(userId, id, 3)
@@ -133,6 +144,18 @@ export default async function SummaryDetailPage({
                 timeZone: "Asia/Tokyo",
               })}
             </span>
+          </div>
+
+          {/* テーマ */}
+          <div className="mb-6 pb-6 border-b border-slate-200">
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="text-sm font-semibold text-slate-700">テーマ</h3>
+            </div>
+            <ThemeEditor
+              summaryId={summary.id}
+              currentTheme={summary.theme}
+              availableThemes={availableThemes}
+            />
           </div>
 
           {/* 要約 */}

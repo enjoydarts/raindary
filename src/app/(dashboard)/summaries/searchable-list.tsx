@@ -380,6 +380,15 @@ export function SearchableList({ items }: SearchableListProps) {
                   </h3>
                 </Link>
 
+                {/* テーマバッジ */}
+                {item.theme && (
+                  <div className="mb-2">
+                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                      {item.theme}
+                    </Badge>
+                  </div>
+                )}
+
                 {/* 要約プレビュー */}
                 {item.status === "completed" && item.summary && (
                   <p className="text-sm text-slate-600 line-clamp-3 mb-3">{item.summary}</p>
