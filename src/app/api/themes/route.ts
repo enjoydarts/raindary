@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { db } from "@/db"
 import { summaries } from "@/db/schema"
-import { eq, isNotNull, sql } from "drizzle-orm"
+import { eq, isNotNull, and } from "drizzle-orm"
 
 /**
  * ユーザーの要約に存在するテーマ一覧を取得
@@ -21,8 +21,7 @@ export async function GET(req: NextRequest) {
     const themes = await db
       .selectDistinct({ theme: summaries.theme })
       .from(summaries)
-      .where(eq(summaries.userId, userId))
-      .where(isNotNull(summaries.theme))
+      .where(and(eq(summaries.userId, userId), isNotNull(summaries.theme)))
       .orderBy(summaries.theme)
 
     return NextResponse.json({
