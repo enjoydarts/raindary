@@ -54,95 +54,99 @@ export const raindropImport = inngest.createFunction(
     // Raindrop APIクライアントを初期化
     const client = new RaindropClient(accessToken)
 
-    // データ取り込み（新規取込件数のみカウント）
-    const totalImported = await step.run("import-raindrops", async () => {
-      let newCount = 0
-      let totalCount = 0
-      console.log("[raindrop-import] Starting import for user:", userId)
+    // データ取り込み（新規取込記事のIDリストを返す）
+    const { newCount: totalImported, newRaindropIds } = await step.run(
+      "import-raindrops",
+      async () => {
+        let newCount = 0
+        let totalCount = 0
+        const newIds: number[] = []
+        console.log("[raindrop-import] Starting import for user:", userId)
 
-      for await (const items of client.fetchAllRaindrops({
-        collectionId: filters?.collectionId,
-      })) {
-        console.log("[raindrop-import] Fetched batch of items:", items.length)
+        for await (const items of client.fetchAllRaindrops({
+          collectionId: filters?.collectionId,
+        })) {
+          console.log("[raindrop-import] Fetched batch of items:", items.length)
 
-        // バッチ内のIDリストを取得
-        const itemIds = items.map((item) => item._id)
+          // バッチ内のIDリストを取得
+          const itemIds = items.map((item) => item._id)
 
-        // このバッチ内で既存のIDを取得
-        const existingInBatch = new Set(
-          (
+          // このバッチ内で既存のIDを取得
+          const existingInBatch = new Set(
+            (
+              await db
+                .select({ id: raindrops.id })
+                .from(raindrops)
+                .where(and(eq(raindrops.userId, userId), inArray(raindrops.id, itemIds)))
+            ).map((r) => r.id)
+          )
+
+          // データベースにupsert
+          for (const item of items) {
+            const isNew = !existingInBatch.has(item._id)
+
             await db
-              .select({ id: raindrops.id })
-              .from(raindrops)
-              .where(and(eq(raindrops.userId, userId), inArray(raindrops.id, itemIds)))
-          ).map((r) => r.id)
-        )
-
-        // データベースにupsert
-        for (const item of items) {
-          const isNew = !existingInBatch.has(item._id)
-
-          await db
-            .insert(raindrops)
-            .values({
-              id: item._id,
-              userId: userId,
-              title: item.title,
-              link: item.link,
-              excerpt: item.excerpt || "",
-              cover: item.cover || "",
-              collectionId: item.collection.$id,
-              tags: item.tags,
-              createdAtRemote: new Date(item.created),
-              syncedAt: new Date(),
-            })
-            .onConflictDoUpdate({
-              target: [raindrops.userId, raindrops.id],
-              set: {
+              .insert(raindrops)
+              .values({
+                id: item._id,
+                userId: userId,
                 title: item.title,
                 link: item.link,
                 excerpt: item.excerpt || "",
                 cover: item.cover || "",
                 collectionId: item.collection.$id,
                 tags: item.tags,
+                createdAtRemote: new Date(item.created),
                 syncedAt: new Date(),
-              },
-            })
+              })
+              .onConflictDoUpdate({
+                target: [raindrops.userId, raindrops.id],
+                set: {
+                  title: item.title,
+                  link: item.link,
+                  excerpt: item.excerpt || "",
+                  cover: item.cover || "",
+                  collectionId: item.collection.$id,
+                  tags: item.tags,
+                  syncedAt: new Date(),
+                },
+              })
 
-          if (isNew) {
-            newCount++
+            if (isNew) {
+              newCount++
+              newIds.push(item._id)
+            }
+            totalCount++
           }
-          totalCount++
         }
+        console.log(
+          `[raindrop-import] Total: ${totalCount}, New: ${newCount}, Updated: ${totalCount - newCount}`
+        )
+        return { newCount, newRaindropIds: newIds }
       }
-      console.log(
-        `[raindrop-import] Total: ${totalCount}, New: ${newCount}, Updated: ${totalCount - newCount}`
-      )
-      return newCount
-    })
+    )
 
-    // 各記事の本文抽出イベントを発火
+    // 新規取込記事のみ本文抽出イベントを発火（最新50件まで）
     const totalExtractRequested = await step.run("trigger-extracts", async () => {
-      // 未要約の記事のみ抽出対象とする（最新50件まで）
-      // summariesテーブルとLEFT JOINして、要約が存在しない記事のみ取得
-      const unsummarizedRaindrops = await db
+      // 新規記事がない場合はスキップ
+      if (newRaindropIds.length === 0) {
+        console.log("[raindrop-import] No new raindrops to extract")
+        return 0
+      }
+
+      // 新規記事のうち最新50件を抽出対象とする
+      const newRaindropsToExtract = await db
         .select({
           id: raindrops.id,
           createdAtRemote: raindrops.createdAtRemote,
         })
         .from(raindrops)
-        .leftJoin(
-          summaries,
-          sql`${raindrops.id} = ${summaries.raindropId} AND ${raindrops.userId} = ${summaries.userId}`
-        )
-        .where(
-          sql`${raindrops.userId} = ${userId} AND ${summaries.id} IS NULL`
-        )
+        .where(and(eq(raindrops.userId, userId), inArray(raindrops.id, newRaindropIds)))
         .orderBy(sql`${raindrops.createdAtRemote} DESC`)
         .limit(50)
 
       let count = 0
-      for (const raindrop of unsummarizedRaindrops) {
+      for (const raindrop of newRaindropsToExtract) {
         await inngest.send({
           name: "raindrop/item.extract.requested",
           data: {
@@ -152,6 +156,7 @@ export const raindropImport = inngest.createFunction(
         })
         count++
       }
+      console.log(`[raindrop-import] Triggered extract for ${count} new raindrops`)
       return count
     })
 
