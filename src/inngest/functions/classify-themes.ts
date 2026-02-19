@@ -205,9 +205,11 @@ export const classifyThemes = inngest.createFunction(
 
       const centroidMap = new Map<string, number[]>(themeCentroids)
 
-      // 未分類の要約を最も近いテーマに割り当て
+      // 未分類の要約を最も近いテーマに割り当て（閾値以下は新テーマ候補）
+      const SIMILARITY_THRESHOLD = 0.5 // 類似度の閾値
       const assignmentResult = await step.run("assign-to-nearest-theme", async () => {
         const assignments = new Map<string, string>()
+        const newThemeCandidates: typeof unclassifiedSummaries = []
 
         for (const summary of unclassifiedSummaries) {
           const embedding = summary.embedding as number[]
@@ -223,14 +225,74 @@ export const classifyThemes = inngest.createFunction(
             }
           }
 
-          assignments.set(summary.id, bestTheme)
+          // 類似度が閾値以上なら既存テーマに割り当て、未満なら新テーマ候補
+          if (maxSimilarity >= SIMILARITY_THRESHOLD) {
+            assignments.set(summary.id, bestTheme)
+            console.log(`[classify-themes] Assigned "${summary.id.substring(0, 8)}" to "${bestTheme}" (similarity: ${maxSimilarity.toFixed(3)})`)
+          } else {
+            newThemeCandidates.push(summary)
+            console.log(`[classify-themes] Low similarity ${maxSimilarity.toFixed(3)} for "${summary.id.substring(0, 8)}", marking for new theme`)
+          }
         }
 
-        console.log(`[classify-themes] Assigned ${assignments.size} summaries to existing themes`)
-        return Array.from(assignments.entries())
+        console.log(`[classify-themes] Assigned ${assignments.size} summaries to existing themes, ${newThemeCandidates.length} candidates for new themes`)
+        return {
+          assignments: Array.from(assignments.entries()),
+          newThemeCandidates,
+        }
       })
 
-      const assignmentMap = new Map<string, string>(assignmentResult)
+      const assignmentMap = new Map<string, string>(assignmentResult.assignments)
+      const newThemeCandidates = assignmentResult.newThemeCandidates
+
+      // 新テーマ候補が一定数以上ある場合、新しいテーマを生成
+      if (newThemeCandidates.length >= 5) {
+        console.log(`[classify-themes] Creating new themes for ${newThemeCandidates.length} candidates`)
+
+        const newThemeResult = await step.run("create-new-themes", async () => {
+          const vectors = newThemeCandidates.map(s => s.embedding as number[])
+          const k = Math.min(5, Math.max(1, Math.floor(vectors.length / 5))) // 5件ごとに1テーマ
+
+          console.log(`[classify-themes] Running K-means for new themes with k=${k}`)
+
+          const clusterAssignments = kmeans(vectors, k)
+
+          // LLMで新テーマラベルを生成
+          const summaryData = newThemeCandidates.map(s => ({
+            id: s.id,
+            summary: s.summary,
+          }))
+          const themes = await assignThemeLabels(clusterAssignments, summaryData)
+
+          return Array.from(themes.entries())
+        })
+
+        // 新テーマを既存の割り当てにマージ
+        for (const [summaryId, theme] of newThemeResult) {
+          assignmentMap.set(summaryId, theme)
+        }
+
+        console.log(`[classify-themes] Created ${new Set(newThemeResult.map(([_, theme]) => theme)).size} new themes`)
+      } else if (newThemeCandidates.length > 0) {
+        // 少数の場合は、最も近いテーマに妥協して割り当て
+        console.log(`[classify-themes] Only ${newThemeCandidates.length} candidates, assigning to closest existing themes`)
+
+        for (const summary of newThemeCandidates) {
+          const embedding = summary.embedding as number[]
+          let maxSimilarity = -Infinity
+          let bestTheme = existingThemes[0]
+
+          for (const [theme, centroid] of centroidMap.entries()) {
+            const similarity = cosineSimilarity(embedding, centroid)
+            if (similarity > maxSimilarity) {
+              maxSimilarity = similarity
+              bestTheme = theme
+            }
+          }
+
+          assignmentMap.set(summary.id, bestTheme)
+        }
+      }
 
       // DBを更新
       const updateCount = await step.run("update-themes-incremental", async () => {
@@ -244,7 +306,7 @@ export const classifyThemes = inngest.createFunction(
           count++
         }
 
-        console.log(`[classify-themes] Updated ${count} summaries with existing themes`)
+        console.log(`[classify-themes] Updated ${count} summaries with themes (${assignmentResult.assignments.length} existing, ${newThemeCandidates.length} new theme candidates)`)
         return count
       })
 
@@ -277,6 +339,8 @@ export const classifyThemes = inngest.createFunction(
         themeDistribution: themeStats,
         mode: "incremental",
         existingThemeCount: existingThemes.length,
+        assignedToExisting: assignmentResult.assignments.length,
+        newThemesCreated: newThemeCandidates.length >= 5 ? new Set(assignmentMap.values()).size - existingThemes.length : 0,
       }
     } catch (error) {
       console.error(`[classify-themes] Error:`, error)
