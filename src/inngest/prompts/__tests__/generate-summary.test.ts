@@ -6,7 +6,7 @@ describe("generate-summary", () => {
     keyPoints: ["Point 1", "Point 2", "Point 3"],
     mainClaim: "This is the main claim of the article",
     caveats: ["Caveat 1"],
-    techKeywords: ["React", "TypeScript", "Jest"],
+    keywords: ["React", "TypeScript", "Jest"],
   }
 
   describe("buildGenerateSummaryPrompt", () => {
@@ -107,10 +107,10 @@ describe("generate-summary", () => {
         expect(result.userMessage).toContain(JSON.stringify(facts, null, 2))
       })
 
-      it("should handle many techKeywords", () => {
+      it("should handle many keywords", () => {
         const facts: ExtractedFacts = {
           ...mockFacts,
-          techKeywords: [
+          keywords: [
             "React",
             "TypeScript",
             "Next.js",
@@ -131,7 +131,7 @@ describe("generate-summary", () => {
           keyPoints: ["ポイント1", "ポイント2"],
           mainClaim: "これは主張です",
           caveats: ["注意点1"],
-          techKeywords: ["React", "TypeScript"],
+          keywords: ["React", "TypeScript"],
         }
 
         const result = buildGenerateSummaryPrompt(facts, "casual")

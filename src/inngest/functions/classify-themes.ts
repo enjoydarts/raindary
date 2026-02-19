@@ -2,7 +2,7 @@ import { inngest } from "../client"
 import { db } from "@/db"
 import { summaries } from "@/db/schema"
 import { eq, and, isNotNull, sql } from "drizzle-orm"
-import { kmeans, assignThemeLabels } from "@/lib/clustering"
+import { kmeans, assignThemeLabels, type ThemeLabel } from "@/lib/clustering"
 import { NonRetriableError } from "inngest"
 
 /**
@@ -56,34 +56,45 @@ export const classifyThemes = inngest.createFunction(
     )
 
     // K-meansクラスタリング実行
-    const { clusters, themeMap } = await step.run("kmeans-clustering", async () => {
-      const vectors = summariesWithEmbedding.map((s) => s.embedding as number[])
-      const k = Math.min(5, Math.max(2, Math.floor(vectors.length / 10))) // 動的にクラスタ数を決定
+    const result = await step.run(
+      "kmeans-clustering",
+      async (): Promise<{
+        clusters: number[]
+        themeEntries: Array<[string, ThemeLabel]>
+      }> => {
+        const vectors = summariesWithEmbedding.map((s) => s.embedding as number[])
+        const k = Math.min(5, Math.max(2, Math.floor(vectors.length / 10))) // 動的にクラスタ数を決定
 
-      console.log(
-        `[classify-themes] Running K-means with k=${k} on ${vectors.length} vectors`
-      )
+        console.log(
+          `[classify-themes] Running K-means with k=${k} on ${vectors.length} vectors`
+        )
 
-      const clusterAssignments = kmeans(vectors, k)
+        const clusterAssignments = kmeans(vectors, k)
 
-      // テーマラベルを割り当て
-      const summaryData = summariesWithEmbedding.map((s) => ({
-        id: s.id,
-        summary: s.summary,
-      }))
-      const themes = assignThemeLabels(clusterAssignments, summaryData)
+        // テーマラベルを割り当て
+        const summaryData = summariesWithEmbedding.map((s) => ({
+          id: s.id,
+          summary: s.summary,
+        }))
+        const themes = assignThemeLabels(clusterAssignments, summaryData)
 
-      return {
-        clusters: clusterAssignments,
-        themeMap: themes,
+        // MapをArray形式に変換（Inngestはシリアライズ可能な形式が必要）
+        return {
+          clusters: clusterAssignments,
+          themeEntries: Array.from(themes.entries()),
+        }
       }
-    })
+    )
+
+    const themeMap = new Map<string, ThemeLabel>(result.themeEntries)
+    const clusters: number[] = result.clusters
 
     // DBを更新
     const updateCount = await step.run("update-themes", async () => {
       let count = 0
 
-      for (const [summaryId, theme] of themeMap.entries()) {
+      // MapをArray.fromで配列に変換してからループ
+      for (const [summaryId, theme] of Array.from(themeMap)) {
         await db
           .update(summaries)
           .set({ theme })
@@ -99,11 +110,11 @@ export const classifyThemes = inngest.createFunction(
     const themeStats = await step.run("calculate-stats", async () => {
       const stats = new Map<string, number>()
 
-      for (const theme of themeMap.values()) {
+      for (const theme of Array.from(themeMap.values())) {
         stats.set(theme, (stats.get(theme) || 0) + 1)
       }
 
-      return Object.fromEntries(stats)
+      return Object.fromEntries(Array.from(stats))
     })
 
     console.log(`[classify-themes] Theme distribution:`, themeStats)
