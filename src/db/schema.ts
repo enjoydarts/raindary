@@ -10,8 +10,27 @@ import {
   uniqueIndex,
   index,
   primaryKey,
+  customType,
 } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
+
+/**
+ * pgvector型の定義
+ */
+const vector = customType<{
+  data: number[]
+  driverData: string
+}>({
+  dataType() {
+    return "vector(1536)"
+  },
+  toDriver(value: number[]): string {
+    return JSON.stringify(value)
+  },
+  fromDriver(value: string): number[] {
+    return JSON.parse(value)
+  },
+})
 
 /**
  * ユーザーテーブル
@@ -143,7 +162,8 @@ export const summaries = pgTable(
     rating: integer("rating"), // 1-5
     ratingReason: text("rating_reason"),
     factsJson: jsonb("facts_json"), // Step1の事実抽出結果
-    embedding: jsonb("embedding"), // 要約の埋め込みベクトル（関連記事提案用）
+    embedding: vector("embedding"), // 要約の埋め込みベクトル（関連記事提案用・1536次元）
+    theme: text("theme"), // 自動分類されたテーマ ('frontend', 'backend', 'ai', 'devops', 'other')
     model: text("model").notNull(), // 使用モデル
     status: text("status").notNull().default("pending"), // 'pending', 'processing', 'completed', 'failed'
     error: text("error"),

@@ -26,6 +26,7 @@ interface Summary {
   id: string
   summary: string
   tone: string
+  theme: string | null
   status: string
   rating: number | null
   ratingReason: string | null

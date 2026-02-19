@@ -26,6 +26,7 @@ export default async function SummariesPage() {
         id: summaries.id,
         summary: summaries.summary,
         tone: summaries.tone,
+        theme: summaries.theme,
         status: summaries.status,
         rating: summaries.rating,
         ratingReason: summaries.ratingReason,
