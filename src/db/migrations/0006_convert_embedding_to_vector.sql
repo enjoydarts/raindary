@@ -17,9 +17,12 @@ ALTER TABLE summaries DROP COLUMN embedding;
 ALTER TABLE summaries RENAME COLUMN embedding_vector TO embedding;
 
 -- Step 4: Create index for vector similarity search (cosine distance)
-CREATE INDEX IF NOT EXISTS idx_summaries_embedding_cosine
-  ON summaries USING ivfflat (embedding vector_cosine_ops)
-  WITH (lists = 100);
+-- Using HNSW index (better memory efficiency and accuracy than ivfflat)
+CREATE INDEX IF NOT EXISTS idx_summaries_embedding_hnsw
+  ON summaries USING hnsw (embedding vector_cosine_ops)
+  WITH (m = 16, ef_construction = 64);
 
--- Note: For better performance with large datasets, consider using HNSW index:
--- CREATE INDEX idx_summaries_embedding_hnsw ON summaries USING hnsw (embedding vector_cosine_ops);
+-- Note: ivfflat alternative (uses more memory):
+-- CREATE INDEX idx_summaries_embedding_cosine
+--   ON summaries USING ivfflat (embedding vector_cosine_ops)
+--   WITH (lists = 100);
