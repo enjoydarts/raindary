@@ -32,8 +32,12 @@ export function AblyNotifications({ userId }: AblyNotificationsProps) {
       processedMessageIds.current.add(message.id)
 
       const data = message.data
+      const count = data.count || 0
       toast.success("記事の取込が完了しました", {
-        description: `${data.count || 0}件の記事を同期しました。ページを更新して確認してください。`,
+        description:
+          count > 0
+            ? `新規に${count}件の記事を取り込みました。ページを更新して確認してください。`
+            : "新規記事はありませんでした。",
         duration: Infinity, // 手動で閉じるまで表示
       })
     })

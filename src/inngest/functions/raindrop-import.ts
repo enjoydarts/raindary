@@ -54,16 +54,36 @@ export const raindropImport = inngest.createFunction(
     // Raindrop APIクライアントを初期化
     const client = new RaindropClient(accessToken)
 
-    // データ取り込み
+    // データ取り込み（新規取込件数のみカウント）
     const totalImported = await step.run("import-raindrops", async () => {
-      let count = 0
+      let newCount = 0
+      let totalCount = 0
       console.log("[raindrop-import] Starting import for user:", userId)
+
       for await (const items of client.fetchAllRaindrops({
         collectionId: filters?.collectionId,
       })) {
         console.log("[raindrop-import] Fetched batch of items:", items.length)
+
+        // バッチ内のIDリストを取得
+        const itemIds = items.map((item) => item._id)
+
+        // このバッチ内で既存のIDを取得
+        const existingInBatch = new Set(
+          (
+            await db
+              .select({ id: raindrops.id })
+              .from(raindrops)
+              .where(
+                sql`${raindrops.userId} = ${userId} AND ${raindrops.id} = ANY(${itemIds})`
+              )
+          ).map((r) => r.id)
+        )
+
         // データベースにupsert
         for (const item of items) {
+          const isNew = !existingInBatch.has(item._id)
+
           await db
             .insert(raindrops)
             .values({
@@ -91,11 +111,16 @@ export const raindropImport = inngest.createFunction(
               },
             })
 
-          count++
+          if (isNew) {
+            newCount++
+          }
+          totalCount++
         }
       }
-      console.log("[raindrop-import] Total imported:", count)
-      return count
+      console.log(
+        `[raindrop-import] Total: ${totalCount}, New: ${newCount}, Updated: ${totalCount - newCount}`
+      )
+      return newCount
     })
 
     // 各記事の本文抽出イベントを発火

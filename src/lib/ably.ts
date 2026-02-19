@@ -30,7 +30,10 @@ function getNotificationContent(eventName: string, data: Record<string, any>) {
     case "import:completed":
       return {
         title: "記事の取込が完了しました",
-        description: `${data.count || 0}件の記事を同期しました。ページを更新して確認してください。`,
+        description:
+          data.count > 0
+            ? `新規に${data.count}件の記事を取り込みました。ページを更新して確認してください。`
+            : "新規記事はありませんでした。",
       }
     case "summary:completed":
       return {
