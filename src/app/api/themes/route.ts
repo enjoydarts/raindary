@@ -1,25 +1,27 @@
 import { NextRequest, NextResponse } from "next/server"
+import { auth } from "@/auth"
 import { db } from "@/db"
 import { summaries } from "@/db/schema"
 import { eq, isNotNull, sql } from "drizzle-orm"
-import { getAuthUser } from "@/lib/auth-context"
 
 /**
  * ユーザーの要約に存在するテーマ一覧を取得
  */
 export async function GET(req: NextRequest) {
   try {
-    const user = await getAuthUser()
+    const session = await auth()
 
-    if (!user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+
+    const userId = session.user.id
 
     // ユーザーの要約からユニークなテーマを取得
     const themes = await db
       .selectDistinct({ theme: summaries.theme })
       .from(summaries)
-      .where(eq(summaries.userId, user.id))
+      .where(eq(summaries.userId, userId))
       .where(isNotNull(summaries.theme))
       .orderBy(summaries.theme)
 
