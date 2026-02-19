@@ -47,6 +47,18 @@ function getNotificationContent(eventName: string, data: Record<string, any>) {
         title: "要約に失敗しました",
         description: data.error || "エラーが発生しました",
       }
+    case "themes:completed":
+      return {
+        title: "テーマ分類が完了しました",
+        description: data.count > 0
+          ? `${data.count}件の要約にテーマを割り当てました。ページを更新して確認してください。`
+          : "分類対象の要約がありませんでした。",
+      }
+    case "themes:failed":
+      return {
+        title: "テーマ分類に失敗しました",
+        description: data.error || "エラーが発生しました",
+      }
     default:
       return {
         title: "通知",
