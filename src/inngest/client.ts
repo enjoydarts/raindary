@@ -39,6 +39,12 @@ export type Events = {
       userId: string
     }
   }
+  "digests/generate-weekly.requested": {
+    data: {
+      userId: string
+      periodStart?: string // YYYY-MM-DD (JST)
+    }
+  }
 }
 
 /**

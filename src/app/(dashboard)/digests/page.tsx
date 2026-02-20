@@ -6,6 +6,8 @@ import { eq, desc } from "drizzle-orm"
 import { BookOpen, Calendar, Tag } from "lucide-react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { TriggerDigestButton } from "./trigger-digest-button"
+import { DigestMarkdown } from "./digest-markdown"
 
 export default async function DigestsPage() {
   const session = await auth()
@@ -33,12 +35,17 @@ export default async function DigestsPage() {
   return (
     <div className="px-4 sm:px-0">
       <div className="mb-8 border-b border-slate-200 dark:border-slate-700 pb-6">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-          ダイジェスト
-        </h1>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-          週次・月次の読書トレンドをAIが自動分析します。毎週月曜日に先週分が生成されます。
-        </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+              ダイジェスト
+            </h1>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+              週次・月次の読書トレンドをAIが自動分析します。毎週月曜日に先週分が生成されます。
+            </p>
+          </div>
+          <TriggerDigestButton />
+        </div>
       </div>
 
       {items.length === 0 ? (
@@ -106,11 +113,7 @@ export default async function DigestsPage() {
                   )}
                 </CardHeader>
                 <CardContent className="px-6 py-5">
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
-                    <pre className="whitespace-pre-wrap font-sans text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
-                      {digest.content}
-                    </pre>
-                  </div>
+                  <DigestMarkdown content={digest.content} />
                 </CardContent>
               </Card>
             )

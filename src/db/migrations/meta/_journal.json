@@ -99,6 +99,13 @@
       "when": 1775853000000,
       "tag": "0013_add_user_model_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1776580000000,
+      "tag": "0014_add_unique_index_for_digests_period",
+      "breakpoints": true
     }
   ]
 }

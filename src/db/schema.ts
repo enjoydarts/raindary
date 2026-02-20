@@ -409,6 +409,12 @@ export const digests = pgTable(
   (table) => ({
     userIdIdx: index("digests_user_id_idx").on(table.userId),
     periodIdx: index("digests_period_idx").on(table.userId, table.period, table.periodStart),
+    uniquePeriodDigest: uniqueIndex("digests_unique_period_idx").on(
+      table.userId,
+      table.period,
+      table.periodStart,
+      table.periodEnd
+    ),
   })
 )
 
