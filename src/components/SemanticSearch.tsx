@@ -1,11 +1,19 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Search, Sparkles, Loader2, Clock, X } from "lucide-react"
+import { Search, Sparkles, Loader2, Clock, X, CircleHelp } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import Link from "next/link"
 
 interface SearchResult {
@@ -181,6 +189,25 @@ export function SemanticSearch() {
             </>
           )}
         </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button type="button" variant="outline">
+              <CircleHelp className="h-4 w-4 mr-1.5" />
+              使い方
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>AI意味検索（ハイブリッド）</DialogTitle>
+              <DialogDescription>
+                ベクトル類似度とキーワードマッチを組み合わせて検索します。
+              </DialogDescription>
+            </DialogHeader>
+            <div className="rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 text-sm text-slate-700 dark:text-slate-300">
+              例: 「認証」で検索すると、OAuth、JWT、セキュリティ関連の記事がヒットします。
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* エラー表示 */}
@@ -251,26 +278,6 @@ export function SemanticSearch() {
         </div>
       )}
 
-      {/* 検索前の説明 */}
-      {results.length === 0 && !error && !isSearching && query.trim() === "" && (
-        <Card className="p-6 bg-gradient-to-br from-indigo-50 dark:from-indigo-950/30 to-purple-50 dark:to-purple-950/30 border-indigo-100 dark:border-indigo-900">
-          <div className="flex items-start gap-3">
-            <div className="rounded-full bg-indigo-100 dark:bg-indigo-900/50 p-2">
-              <Sparkles className="h-5 w-5 text-indigo-600" />
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">
-                AI意味検索（ハイブリッド）
-              </h4>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                ベクトル類似度とキーワードマッチを組み合わせて検索します。
-                <br />
-                例: 「認証」で検索すると、OAuth、JWT、セキュリティ関連の記事がヒットします。
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
     </div>
   )
 }

@@ -1,9 +1,22 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Search, X, Check, Loader2, FileText, ClipboardList, Zap, Flame, MessageCircle, Clock, Tag } from "lucide-react"
+import {
+  Search,
+  X,
+  Check,
+  Loader2,
+  FileText,
+  ClipboardList,
+  Zap,
+  Flame,
+  MessageCircle,
+  Clock,
+  Tag,
+  Filter,
+} from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -20,6 +33,36 @@ const TONE_LABELS: Record<string, { label: string; Icon: LucideIcon }> = {
   snarky: { label: "毒舌", Icon: Zap },
   enthusiastic: { label: "熱量高め", Icon: Flame },
   casual: { label: "カジュアル", Icon: MessageCircle },
+}
+
+const STATUS_META: Record<
+  string,
+  { label: string; className: string; Icon: LucideIcon }
+> = {
+  completed: {
+    label: "完了",
+    className:
+      "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+    Icon: Check,
+  },
+  failed: {
+    label: "失敗",
+    className:
+      "bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800",
+    Icon: X,
+  },
+  processing: {
+    label: "処理中",
+    className:
+      "bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+    Icon: Loader2,
+  },
+  pending: {
+    label: "待機中",
+    className:
+      "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+    Icon: Clock,
+  },
 }
 
 interface Summary {
@@ -59,9 +102,7 @@ export function SearchableList({ items }: SearchableListProps) {
     const hasInFlight = items.some(
       (item) => item.status === "processing" || item.status === "pending"
     )
-    if (!hasInFlight) {
-      return
-    }
+    if (!hasInFlight) return
 
     const timer = setInterval(() => {
       router.refresh()
@@ -75,47 +116,37 @@ export function SearchableList({ items }: SearchableListProps) {
     router.refresh()
   }
 
-  // itemsから動的にテーマ一覧を抽出
   const availableThemes = useMemo(() => {
     const themes = new Set<string>()
     items.forEach((item) => {
-      if (item.theme) {
-        themes.add(item.theme)
-      }
+      if (item.theme) themes.add(item.theme)
     })
     return Array.from(themes).sort()
   }, [items])
 
-  // itemsから動的にタグ一覧を抽出
   const availableTags = useMemo(() => {
     const tagCountMap = new Map<string, number>()
     items.forEach((item) => {
       if (item.articleTags && Array.isArray(item.articleTags)) {
-        (item.articleTags as string[]).forEach((tag) => {
+        ;(item.articleTags as string[]).forEach((tag) => {
           tagCountMap.set(tag, (tagCountMap.get(tag) || 0) + 1)
         })
       }
     })
-    return Array.from(tagCountMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([tag]) => tag)
+    return Array.from(tagCountMap.entries()).sort((a, b) => b[1] - a[1])
   }, [items])
 
-  // 検索とフィルタリング
   const filteredItems = useMemo(() => {
     let result = items
 
-    // トーンフィルター
     if (selectedTone) {
       result = result.filter((item) => item.tone === selectedTone)
     }
 
-    // テーマフィルター
     if (selectedTheme) {
       result = result.filter((item) => item.theme === selectedTheme)
     }
 
-    // タグフィルター
     if (selectedTag) {
       result = result.filter((item) => {
         if (!item.articleTags || !Array.isArray(item.articleTags)) return false
@@ -123,404 +154,295 @@ export function SearchableList({ items }: SearchableListProps) {
       })
     }
 
-    // ステータスフィルター
     if (selectedStatus) {
       result = result.filter((item) => item.status === selectedStatus)
     }
 
-    // 検索フィルター
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
       result = result.filter((item) => {
-        // 記事タイトルで検索
-        if (item.articleTitle && item.articleTitle.toLowerCase().includes(query)) {
-          return true
-        }
-
-        // 要約内容で検索
-        if (item.summary && item.summary.toLowerCase().includes(query)) {
-          return true
-        }
-
-        // 記事本文で検索
-        if (item.articleExcerpt && item.articleExcerpt.toLowerCase().includes(query)) {
-          return true
-        }
-
-        // トーンで検索
+        if (item.articleTitle && item.articleTitle.toLowerCase().includes(query)) return true
+        if (item.summary && item.summary.toLowerCase().includes(query)) return true
+        if (item.articleExcerpt && item.articleExcerpt.toLowerCase().includes(query)) return true
         const toneLabel = TONE_LABELS[item.tone]?.label || item.tone
-        if (toneLabel.toLowerCase().includes(query)) {
-          return true
-        }
-
-        return false
+        return toneLabel.toLowerCase().includes(query)
       })
     }
 
     return result
-  }, [items, searchQuery, selectedTone, selectedTheme, selectedStatus])
+  }, [items, searchQuery, selectedTone, selectedTheme, selectedStatus, selectedTag])
 
-  // ページネーション
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, selectedTone, selectedTheme, selectedStatus, selectedTag])
+
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage)
   const paginatedItems = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage
     return filteredItems.slice(startIndex, startIndex + itemsPerPage)
-  }, [filteredItems, currentPage, itemsPerPage])
+  }, [filteredItems, currentPage])
 
-  // フィルター変更時にページを1にリセット
-  useMemo(() => {
-    setCurrentPage(1)
-  }, [searchQuery, selectedTone, selectedTheme, selectedStatus, selectedTag])
+  const hasActiveFilters =
+    Boolean(searchQuery.trim()) ||
+    Boolean(selectedTone) ||
+    Boolean(selectedTheme) ||
+    Boolean(selectedStatus) ||
+    Boolean(selectedTag)
+
+  const clearFilters = () => {
+    setSearchQuery("")
+    setSelectedTone(null)
+    setSelectedTheme(null)
+    setSelectedStatus(null)
+    setSelectedTag(null)
+  }
 
   return (
-    <div className="space-y-4">
-      {/* 検索バー */}
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-          <Search className="h-5 w-5 text-slate-400" />
+    <div className="space-y-6">
+      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative flex-1">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <Search className="h-5 w-5 text-slate-400" />
+            </div>
+            <Input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="記事タイトル・要約内容で検索"
+              className="pl-10 pr-10"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSearchQuery("")}
+                className="absolute inset-y-0 right-0 h-full px-3 hover:bg-transparent"
+              >
+                <X className="h-5 w-5 text-slate-400 hover:text-slate-600" />
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-slate-500" />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={clearFilters}
+              disabled={!hasActiveFilters}
+            >
+              フィルター解除
+            </Button>
+          </div>
         </div>
-        <Input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="記事タイトル、要約内容、トーンで検索..."
-          className="pl-10 pr-10"
-        />
-        {searchQuery && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSearchQuery("")}
-            className="absolute inset-y-0 right-0 h-full px-3 hover:bg-transparent"
-          >
-            <X className="h-5 w-5 text-slate-400 hover:text-slate-600" />
-          </Button>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="space-y-1">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">トーン</span>
+            <select
+              value={selectedTone ?? ""}
+              onChange={(e) => setSelectedTone(e.target.value || null)}
+              className="w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
+            >
+              <option value="">すべて</option>
+              {Object.entries(TONE_LABELS).map(([value, { label }]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="space-y-1">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">ステータス</span>
+            <select
+              value={selectedStatus ?? ""}
+              onChange={(e) => setSelectedStatus(e.target.value || null)}
+              className="w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
+            >
+              <option value="">すべて</option>
+              {Object.entries(STATUS_META).map(([value, meta]) => (
+                <option key={value} value={value}>
+                  {meta.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        {availableThemes.length > 0 && (
+          <div className="mt-4">
+            <p className="mb-2 text-xs font-medium text-slate-600 dark:text-slate-400">テーマ</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={selectedTheme === null ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedTheme(null)}
+                className={selectedTheme === null ? "bg-purple-600 hover:bg-purple-700" : ""}
+              >
+                すべて
+              </Button>
+              {availableThemes.slice(0, 16).map((theme) => (
+                <Button
+                  key={theme}
+                  variant={selectedTheme === theme ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedTheme(theme)}
+                  className={selectedTheme === theme ? "bg-purple-600 hover:bg-purple-700" : ""}
+                >
+                  {theme}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {availableTags.length > 0 && (
+          <div className="mt-4">
+            <p className="mb-2 text-xs font-medium text-slate-600 dark:text-slate-400">タグ</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={selectedTag === null ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedTag(null)}
+                className={selectedTag === null ? "bg-teal-600 hover:bg-teal-700" : ""}
+              >
+                すべて
+              </Button>
+              {availableTags.slice(0, 20).map(([tag, count]) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                  className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    selectedTag === tag
+                      ? "border-teal-600 bg-teal-600 text-white"
+                      : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-teal-300"
+                  }`}
+                >
+                  <Tag className="h-3 w-3" />
+                  {tag}
+                  <span className="opacity-70">({count})</span>
+                </button>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
-      {/* フィルター */}
-      <div className="flex flex-wrap gap-2">
-        {/* トーンフィルター */}
-        <div className="flex gap-2">
-          <Button
-            variant={selectedTone === null ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedTone(null)}
-            className={selectedTone === null ? "bg-indigo-600 hover:bg-indigo-700" : ""}
-          >
-            すべて
-          </Button>
-          {Object.entries(TONE_LABELS).map(([value, { label, Icon }]) => (
-            <Button
-              key={value}
-              variant={selectedTone === value ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedTone(value)}
-              className={selectedTone === value ? "bg-indigo-600 hover:bg-indigo-700" : ""}
-            >
-              <Icon className="h-3.5 w-3.5 mr-1.5" />
-              {label}
-            </Button>
-          ))}
-        </div>
+      <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400">
+        <span>{filteredItems.length}件の要約</span>
+        {hasActiveFilters ? <span>フィルター適用中</span> : <span>全件表示</span>}
       </div>
 
-      {/* テーマフィルター */}
-      {availableThemes.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">テーマで絞り込み</h3>
-            <span className="text-xs text-slate-500">{availableThemes.length}個のテーマ</span>
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
-            <Button
-              variant={selectedTheme === null ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedTheme(null)}
-              className={`flex-shrink-0 ${selectedTheme === null ? "bg-purple-600 hover:bg-purple-700" : ""}`}
-            >
-              全テーマ
-            </Button>
-            {availableThemes.map((theme) => (
-              <Button
-                key={theme}
-                variant={selectedTheme === theme ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedTheme(theme)}
-                className={`flex-shrink-0 ${selectedTheme === theme ? "bg-purple-600 hover:bg-purple-700" : ""}`}
-              >
-                {theme}
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* タグフィルター */}
-      {availableTags.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">タグで絞り込み</h3>
-            {selectedTag && (
-              <button
-                onClick={() => setSelectedTag(null)}
-                className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 flex items-center gap-1"
-              >
-                <X className="h-3 w-3" />
-                解除
-              </button>
-            )}
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
-            {availableTags.map((tag) => (
-              <button
-                key={tag}
-                onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
-                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border flex-shrink-0 transition-colors ${
-                  selectedTag === tag
-                    ? "bg-teal-600 text-white border-teal-600"
-                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-teal-300"
-                }`}
-              >
-                <Tag className="h-3 w-3" />
-                {tag}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ステータスフィルター */}
-      <div className="flex flex-wrap gap-2 justify-end">
-        <Button
-          variant={selectedStatus === "completed" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setSelectedStatus(selectedStatus === "completed" ? null : "completed")}
-          className={selectedStatus === "completed" ? "bg-green-600 hover:bg-green-700" : ""}
-        >
-          <Check className="h-3.5 w-3.5 mr-1.5" />
-          完了のみ
-        </Button>
-        <Button
-          variant={selectedStatus === "processing" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setSelectedStatus(selectedStatus === "processing" ? null : "processing")}
-          className={selectedStatus === "processing" ? "bg-yellow-600 hover:bg-yellow-700" : ""}
-        >
-          <Loader2 className="h-3.5 w-3.5 mr-1.5" />
-          処理中のみ
-        </Button>
-        <Button
-          variant={selectedStatus === "failed" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setSelectedStatus(selectedStatus === "failed" ? null : "failed")}
-          className={selectedStatus === "failed" ? "bg-red-600 hover:bg-red-700" : ""}
-        >
-          <X className="h-3.5 w-3.5 mr-1.5" />
-          失敗のみ
-        </Button>
-      </div>
-
-      {/* 検索・フィルター結果件数 */}
-      {(searchQuery || selectedTone || selectedStatus || selectedTag) && (
-        <div className="text-sm text-slate-600 dark:text-slate-400">
-          {filteredItems.length}件の要約が見つかりました
-        </div>
-      )}
-
-      {/* 要約リスト */}
       {paginatedItems.length === 0 ? (
         <Card>
           <div className="px-4 py-16 text-center">
-            <div className="mx-auto h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
               <Search className="h-6 w-6 text-slate-400" />
             </div>
-            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-2">
-              検索結果が見つかりませんでした
+            <h3 className="mb-2 text-base font-semibold text-slate-900 dark:text-slate-100">
+              条件に一致する要約がありません
             </h3>
-            <p className="text-sm text-slate-500 max-w-sm mx-auto">
-              別のキーワードで検索してみてください。
-            </p>
+            <p className="mx-auto max-w-sm text-sm text-slate-500">検索条件やフィルターを変更してみてください。</p>
           </div>
         </Card>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {paginatedItems.map((item) => (
-            <div
-              key={item.id}
-              className="group overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm card-hover"
-            >
-              {/* カバー画像 */}
-              {item.articleCover ? (
-                <div className="relative aspect-[16/9] overflow-hidden bg-slate-100 dark:bg-slate-800">
-                  <Image
-                    src={item.articleCover}
-                    alt=""
-                    fill
-                    className="object-cover image-hover-zoom"
-                  />
-                  {/* バッジ */}
-                  <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
-                    {/* トーンバッジ */}
-                    <Badge className="bg-indigo-600/90 backdrop-blur-sm hover:bg-indigo-600/90">
-                      {(() => {
-                        const ToneIcon = TONE_LABELS[item.tone]?.Icon || FileText
-                        return <ToneIcon className="h-3 w-3 mr-1" />
-                      })()}
-                      {TONE_LABELS[item.tone]?.label || item.tone}
-                    </Badge>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {paginatedItems.map((item) => {
+              const toneMeta = TONE_LABELS[item.tone]
+              const ToneIcon = toneMeta?.Icon ?? FileText
+              const statusMeta = STATUS_META[item.status] || STATUS_META.pending
+              const StatusIcon = statusMeta.Icon
 
-                    {/* ステータスバッジ */}
-                    <div>
-                      {item.status === "completed" && (
-                        <Badge className="bg-green-600/90 backdrop-blur-sm hover:bg-green-600/90">
-                          <Check className="h-3 w-3 mr-1" />
-                          完了
+              return (
+                <article
+                  key={item.id}
+                  className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm"
+                >
+                  <div className="relative aspect-[16/9] bg-slate-100 dark:bg-slate-800">
+                    {item.articleCover ? (
+                      <Image src={item.articleCover} alt="" fill className="object-cover" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <FileText className="h-12 w-12 text-slate-300" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3 p-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="secondary" className="inline-flex items-center gap-1">
+                        <ToneIcon className="h-3 w-3" />
+                        {toneMeta?.label || item.tone}
+                      </Badge>
+                      <Badge variant="outline" className={`inline-flex items-center gap-1 ${statusMeta.className}`}>
+                        <StatusIcon className={`h-3 w-3 ${item.status === "processing" ? "animate-spin" : ""}`} />
+                        {statusMeta.label}
+                      </Badge>
+                      {item.theme ? (
+                        <Badge variant="outline" className="bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                          {item.theme}
                         </Badge>
-                      )}
-                      {item.status === "failed" && (
-                        <Badge className="bg-red-600/90 backdrop-blur-sm hover:bg-red-600/90">
-                          <X className="h-3 w-3 mr-1" />
-                          失敗
-                        </Badge>
-                      )}
-                      {item.status === "processing" && (
-                        <Badge className="bg-yellow-600/90 backdrop-blur-sm hover:bg-yellow-600/90">
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          処理中
-                        </Badge>
-                      )}
-                      {item.status === "pending" && (
-                        <Badge className="bg-slate-600/90 backdrop-blur-sm hover:bg-slate-600/90">
-                          <Clock className="h-3 w-3 mr-1" />
-                          待機中
-                        </Badge>
-                      )}
+                      ) : null}
+                    </div>
+
+                    <Link href={`/summaries/${item.id}`}>
+                      <h3 className="line-clamp-2 text-base font-semibold text-slate-900 dark:text-slate-100 hover:text-indigo-600 transition-colors">
+                        {item.articleTitle || "無題の記事"}
+                      </h3>
+                    </Link>
+
+                    {item.status === "completed" && item.summary ? (
+                      <p className="line-clamp-3 text-sm text-slate-600 dark:text-slate-400">{item.summary}</p>
+                    ) : null}
+
+                    {item.status === "failed" && item.error ? (
+                      <div className="rounded-md border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/30 px-3 py-2">
+                        <p className="line-clamp-2 text-xs text-rose-700 dark:text-rose-300">{item.error}</p>
+                      </div>
+                    ) : null}
+
+                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                      <span>
+                        {new Date(item.createdAt).toLocaleDateString("ja-JP", {
+                          timeZone: "Asia/Tokyo",
+                        })}
+                      </span>
+                      {item.rating ? <span>{"★".repeat(item.rating)}{"☆".repeat(5 - item.rating)}</span> : null}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 dark:border-slate-800 pt-3">
+                      {item.status === "completed" ? (
+                        <ShareButton
+                          summaryId={item.id}
+                          isPublic={item.isPublic === 1}
+                          onToggle={() => handleTogglePublic(item.id)}
+                        />
+                      ) : null}
+                      {item.status === "failed" ? (
+                        <RetryButton summaryId={item.id} raindropId={item.raindropId} tone={item.tone} />
+                      ) : null}
+                      {(item.status === "completed" || item.status === "failed") ? (
+                        <DeleteButton
+                          summaryId={item.id}
+                          onDelete={async () => {
+                            router.refresh()
+                            await new Promise((resolve) => setTimeout(resolve, 100))
+                          }}
+                        />
+                      ) : null}
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div className="relative aspect-[16/9] bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                  <FileText className="h-12 w-12 text-slate-300" />
-                  {/* バッジ */}
-                  <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
-                    {/* トーンバッジ */}
-                    <Badge className="bg-indigo-600 hover:bg-indigo-600">
-                      {(() => {
-                        const ToneIcon = TONE_LABELS[item.tone]?.Icon || FileText
-                        return <ToneIcon className="h-3 w-3 mr-1" />
-                      })()}
-                      {TONE_LABELS[item.tone]?.label || item.tone}
-                    </Badge>
-
-                    {/* ステータスバッジ */}
-                    <div>
-                      {item.status === "completed" && (
-                        <Badge className="bg-green-600 hover:bg-green-600">
-                          <Check className="h-3 w-3 mr-1" />
-                          完了
-                        </Badge>
-                      )}
-                      {item.status === "failed" && (
-                        <Badge className="bg-red-600 hover:bg-red-600">
-                          <X className="h-3 w-3 mr-1" />
-                          失敗
-                        </Badge>
-                      )}
-                      {item.status === "processing" && (
-                        <Badge className="bg-yellow-600 hover:bg-yellow-600">
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          処理中
-                        </Badge>
-                      )}
-                      {item.status === "pending" && (
-                        <Badge className="bg-slate-600 hover:bg-slate-600">
-                          <Clock className="h-3 w-3 mr-1" />
-                          待機中
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* コンテンツ */}
-              <div className="p-5">
-                {/* 記事タイトル */}
-                <Link href={`/summaries/${item.id}`}>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 line-clamp-2 mb-2 hover:text-indigo-600 transition-colors cursor-pointer">
-                    {item.articleTitle}
-                  </h3>
-                </Link>
-
-                {/* テーマバッジ */}
-                {item.theme && (
-                  <div className="mb-2">
-                    <Badge variant="outline" className="bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border-purple-200">
-                      {item.theme}
-                    </Badge>
-                  </div>
-                )}
-
-                {/* 要約プレビュー */}
-                {item.status === "completed" && item.summary && (
-                  <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3 mb-3">{item.summary}</p>
-                )}
-
-                {/* エラーメッセージ */}
-                {item.status === "failed" && item.error && (
-                  <div className="rounded-md bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 px-3 py-2 mb-3">
-                    <p className="text-xs text-red-800 dark:text-red-200">{item.error}</p>
-                  </div>
-                )}
-
-                {/* メタ情報 */}
-                <div className="flex items-center justify-between text-xs text-slate-500 mb-3">
-                  <span>{new Date(item.createdAt).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" })}</span>
-                  {item.rating && (
-                    <span className="flex items-center gap-0.5">
-                      {"★".repeat(item.rating)}
-                      {"☆".repeat(5 - item.rating)}
-                    </span>
-                  )}
-                </div>
-
-                {/* アクションボタン */}
-                <div className="flex gap-2">
-                  {item.status === "completed" && (
-                    <ShareButton
-                      summaryId={item.id}
-                      isPublic={item.isPublic === 1}
-                      onToggle={() => handleTogglePublic(item.id)}
-                    />
-                  )}
-                  {item.status === "failed" && (
-                    <RetryButton
-                      summaryId={item.id}
-                      raindropId={item.raindropId}
-                      tone={item.tone}
-                    />
-                  )}
-                  {(item.status === "completed" || item.status === "failed") && (
-                    <DeleteButton
-                      summaryId={item.id}
-                      onDelete={async () => {
-                        router.refresh()
-                        // リフレッシュを待つ
-                        await new Promise(resolve => setTimeout(resolve, 100))
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+                </article>
+              )
+            })}
           </div>
 
-          {/* ページネーション */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-8">
+            <div className="mt-8 flex items-center justify-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -531,7 +453,6 @@ export function SearchableList({ items }: SearchableListProps) {
               </Button>
               <div className="flex gap-1">
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                  // 最初、最後、現在ページの前後2ページのみ表示
                   if (
                     page === 1 ||
                     page === totalPages ||
@@ -543,14 +464,13 @@ export function SearchableList({ items }: SearchableListProps) {
                         variant={currentPage === page ? "default" : "outline"}
                         size="sm"
                         onClick={() => setCurrentPage(page)}
-                        className={
-                          currentPage === page ? "bg-indigo-600 hover:bg-indigo-700" : ""
-                        }
+                        className={currentPage === page ? "bg-indigo-600 hover:bg-indigo-700" : ""}
                       >
                         {page}
                       </Button>
                     )
-                  } else if (page === currentPage - 3 || page === currentPage + 3) {
+                  }
+                  if (page === currentPage - 3 || page === currentPage + 3) {
                     return (
                       <span key={page} className="px-2 text-slate-400">
                         ...
