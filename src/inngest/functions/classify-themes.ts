@@ -8,6 +8,11 @@ import { NonRetriableError } from "inngest"
 import { notifyUser } from "@/lib/ably"
 import { decrypt } from "@/lib/crypto"
 
+function parsePositiveInt(value: string | undefined, fallback: number): number {
+  const parsed = Number(value)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback
+}
+
 /**
  * テーマ自動分類関数
  * ユーザーの全要約をK-meansクラスタリングしてテーマを割り当て
@@ -25,6 +30,11 @@ export const classifyThemes = inngest.createFunction(
   async ({ event, step }) => {
     const { userId, force = false } = event.data
     const BATCH_SIZE = 50
+    const INITIAL_THEME_MAX = parsePositiveInt(process.env.THEME_INITIAL_MAX, 100)
+    const INCREMENTAL_NEW_THEME_MAX = parsePositiveInt(
+      process.env.THEME_INCREMENTAL_MAX,
+      20
+    )
 
     const apiKeys = await step.run("fetch-user-api-keys", async () => {
       const [user] = await db
@@ -124,7 +134,10 @@ export const classifyThemes = inngest.createFunction(
             themeEntries: Array<[string, string]>
           }> => {
             const vectors = unclassifiedSummaries.map((s) => s.embedding as number[])
-            const k = Math.min(50, Math.max(5, Math.floor(vectors.length / 5))) // 動的にクラスタ数を決定（上限50個）
+            const k = Math.min(
+              INITIAL_THEME_MAX,
+              Math.max(5, Math.floor(vectors.length / 5))
+            ) // 動的にクラスタ数を決定（上限は環境変数で調整）
 
             console.log(
               `[classify-themes] Running K-means with k=${k} on ${vectors.length} vectors`
@@ -298,7 +311,10 @@ export const classifyThemes = inngest.createFunction(
 
         const newThemeResult = await step.run("create-new-themes", async () => {
           const vectors = newThemeCandidates.map(s => s.embedding as number[])
-          const k = Math.min(10, Math.max(1, Math.floor(vectors.length / 3))) // 3件ごとに1テーマ（上限10個）
+          const k = Math.min(
+            INCREMENTAL_NEW_THEME_MAX,
+            Math.max(1, Math.floor(vectors.length / 3))
+          ) // 3件ごとに1テーマ（上限は環境変数で調整）
 
           console.log(`[classify-themes] Running K-means for new themes with k=${k}`)
 
