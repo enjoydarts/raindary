@@ -1,11 +1,11 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
-import Link from "next/link"
 import { withRLS } from "@/db/rls"
 import { raindrops, summaries, apiUsage, users } from "@/db/schema"
 import { eq, and, sql, desc, gte, lt, isNull } from "drizzle-orm"
 import { ClipboardList, Zap, Flame, MessageCircle, TrendingUp, TrendingDown } from "lucide-react"
 import { BudgetSettings } from "@/components/BudgetSettings"
+import { TrendSection } from "./trend-section"
 
 const TONE_LABELS = {
   neutral: { label: "客観的", Icon: ClipboardList, color: "bg-slate-100 text-slate-700" },
@@ -16,10 +16,6 @@ const TONE_LABELS = {
 
 type ToneKey = keyof typeof TONE_LABELS
 type ToneFilter = ToneKey | "all"
-
-type SearchParamsInput =
-  | { tone?: string | string[] }
-  | Promise<{ tone?: string | string[] }>
 
 function toDayKeyJst(date: Date): string {
   return new Intl.DateTimeFormat("en-CA", {
@@ -88,65 +84,12 @@ function TrendDelta({ value }: { value: { text: string; positive: boolean } | nu
   )
 }
 
-function MiniBarChart({
-  data,
-  colorClass,
-  emptyLabel,
-}: {
-  data: Array<{ label: string; value: number }>
-  colorClass: string
-  emptyLabel: string
-}) {
-  const maxValue = Math.max(...data.map((item) => item.value), 0)
-
-  if (maxValue === 0) {
-    return (
-      <div className="flex h-36 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-500">
-        {emptyLabel}
-      </div>
-    )
-  }
-
-  return (
-    <div>
-      <div className="flex h-36 items-end gap-1 rounded-lg bg-slate-50 p-2">
-        {data.map((item) => {
-          const height = Math.max((item.value / maxValue) * 100, item.value > 0 ? 4 : 0)
-          return (
-            <div key={item.label} className="group relative flex-1">
-              <div className={`w-full rounded-sm ${colorClass}`} style={{ height: `${height}%` }} />
-              <div className="pointer-events-none absolute -top-7 left-1/2 hidden -translate-x-1/2 rounded bg-slate-900 px-2 py-1 text-[10px] text-white group-hover:block">
-                {item.value.toLocaleString()}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-      <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-        <span>{data[0]?.label}</span>
-        <span>{data[data.length - 1]?.label}</span>
-      </div>
-    </div>
-  )
-}
-
-export default async function StatsPage({
-  searchParams,
-}: {
-  searchParams?: SearchParamsInput
-}) {
+export default async function StatsPage() {
   const session = await auth()
 
   if (!session?.user?.id) {
     redirect("/login")
   }
-
-  const resolvedSearchParams = searchParams ? await Promise.resolve(searchParams) : {}
-  const toneParam = Array.isArray(resolvedSearchParams.tone)
-    ? resolvedSearchParams.tone[0]
-    : resolvedSearchParams.tone
-  const selectedTone: ToneFilter =
-    toneParam && toneParam in TONE_LABELS ? (toneParam as ToneKey) : "all"
 
   const userId = session.user.id
 
@@ -178,8 +121,13 @@ export default async function StatsPage({
     lowRatedSummaries,
     dailySummaryRows,
     dailyUsageRows,
+    dailyUsageRowsByTone,
     currentTrend,
     previousTrend,
+    currentTrendByTone,
+    previousTrendByTone,
+    currentCostByTone,
+    previousCostByTone,
     monthlyBudgetUsd,
   } = await withRLS(userId, async (tx) => {
     const [stats] = await tx
@@ -293,47 +241,40 @@ export default async function StatsPage({
         and(
           eq(summaries.status, "completed"),
           isNull(summaries.deletedAt),
-          gte(summaries.updatedAt, trendStart),
-          selectedTone === "all" ? undefined : eq(summaries.tone, selectedTone)
+          gte(summaries.updatedAt, trendStart)
         )
       )
       .groupBy(summaryDayExpr, summaries.tone)
       .orderBy(summaryDayExpr)
 
-    const dailyUsageRows =
-      selectedTone === "all"
-        ? await tx
-            .select({
-              day: usageDayExpr,
-              cost: sql<string>`COALESCE(SUM(${apiUsage.costUsd}), 0)`,
-              inputTokens: sql<number>`COALESCE(SUM(${apiUsage.inputTokens}), 0)`.mapWith(Number),
-              outputTokens: sql<number>`COALESCE(SUM(${apiUsage.outputTokens}), 0)`.mapWith(Number),
-            })
-            .from(apiUsage)
-            .where(gte(apiUsage.createdAt, trendStart))
-            .groupBy(usageDayExpr)
-            .orderBy(usageDayExpr)
-        : await tx
-            .select({
-              day: usageDayExpr,
-              cost: sql<string>`COALESCE(SUM(${apiUsage.costUsd}), 0)`,
-              inputTokens: sql<number>`COALESCE(SUM(${apiUsage.inputTokens}), 0)`.mapWith(Number),
-              outputTokens: sql<number>`COALESCE(SUM(${apiUsage.outputTokens}), 0)`.mapWith(Number),
-            })
-            .from(apiUsage)
-            .innerJoin(
-              summaries,
-              and(eq(apiUsage.summaryId, summaries.id), eq(apiUsage.userId, summaries.userId))
-            )
-            .where(
-              and(
-                gte(apiUsage.createdAt, trendStart),
-                eq(summaries.tone, selectedTone),
-                isNull(summaries.deletedAt)
-              )
-            )
-            .groupBy(usageDayExpr)
-            .orderBy(usageDayExpr)
+    const dailyUsageRows = await tx
+      .select({
+        day: usageDayExpr,
+        cost: sql<string>`COALESCE(SUM(${apiUsage.costUsd}), 0)`,
+        inputTokens: sql<number>`COALESCE(SUM(${apiUsage.inputTokens}), 0)`.mapWith(Number),
+        outputTokens: sql<number>`COALESCE(SUM(${apiUsage.outputTokens}), 0)`.mapWith(Number),
+      })
+      .from(apiUsage)
+      .where(gte(apiUsage.createdAt, trendStart))
+      .groupBy(usageDayExpr)
+      .orderBy(usageDayExpr)
+
+    const dailyUsageRowsByTone = await tx
+      .select({
+        day: usageDayExpr,
+        tone: summaries.tone,
+        cost: sql<string>`COALESCE(SUM(${apiUsage.costUsd}), 0)`,
+        inputTokens: sql<number>`COALESCE(SUM(${apiUsage.inputTokens}), 0)`.mapWith(Number),
+        outputTokens: sql<number>`COALESCE(SUM(${apiUsage.outputTokens}), 0)`.mapWith(Number),
+      })
+      .from(apiUsage)
+      .innerJoin(
+        summaries,
+        and(eq(apiUsage.summaryId, summaries.id), eq(apiUsage.userId, summaries.userId))
+      )
+      .where(and(gte(apiUsage.createdAt, trendStart), isNull(summaries.deletedAt)))
+      .groupBy(usageDayExpr, summaries.tone)
+      .orderBy(usageDayExpr)
 
     const [currentTrend] = await tx
       .select({
@@ -349,10 +290,20 @@ export default async function StatsPage({
       .where(
         and(
           isNull(summaries.deletedAt),
-          gte(summaries.updatedAt, trendStart),
-          selectedTone === "all" ? undefined : eq(summaries.tone, selectedTone)
+          gte(summaries.updatedAt, trendStart)
         )
       )
+
+    const currentTrendByTone = await tx
+      .select({
+        tone: summaries.tone,
+        summaryCount: sql<number>`COALESCE(COUNT(CASE WHEN ${summaries.status} = 'completed' THEN 1 END), 0)`.mapWith(
+          Number
+        ),
+      })
+      .from(summaries)
+      .where(and(isNull(summaries.deletedAt), gte(summaries.updatedAt, trendStart)))
+      .groupBy(summaries.tone)
 
     const [previousTrend] = await tx
       .select({
@@ -369,77 +320,88 @@ export default async function StatsPage({
         and(
           isNull(summaries.deletedAt),
           gte(summaries.updatedAt, previousTrendStart),
-          lt(summaries.updatedAt, trendStart),
-          selectedTone === "all" ? undefined : eq(summaries.tone, selectedTone)
+          lt(summaries.updatedAt, trendStart)
         )
       )
 
-    const [currentCost] =
-      selectedTone === "all"
-        ? await tx
-            .select({
-              cost: sql<string>`COALESCE(SUM(${apiUsage.costUsd}), 0)`,
-              tokens:
-                sql<number>`COALESCE(SUM(${apiUsage.inputTokens}) + SUM(${apiUsage.outputTokens}), 0)`.mapWith(
-                  Number
-                ),
-            })
-            .from(apiUsage)
-            .where(gte(apiUsage.createdAt, trendStart))
-        : await tx
-            .select({
-              cost: sql<string>`COALESCE(SUM(${apiUsage.costUsd}), 0)`,
-              tokens:
-                sql<number>`COALESCE(SUM(${apiUsage.inputTokens}) + SUM(${apiUsage.outputTokens}), 0)`.mapWith(
-                  Number
-                ),
-            })
-            .from(apiUsage)
-            .innerJoin(
-              summaries,
-              and(eq(apiUsage.summaryId, summaries.id), eq(apiUsage.userId, summaries.userId))
-            )
-            .where(
-              and(
-                gte(apiUsage.createdAt, trendStart),
-                eq(summaries.tone, selectedTone),
-                isNull(summaries.deletedAt)
-              )
-            )
+    const previousTrendByTone = await tx
+      .select({
+        tone: summaries.tone,
+        summaryCount: sql<number>`COALESCE(COUNT(CASE WHEN ${summaries.status} = 'completed' THEN 1 END), 0)`.mapWith(
+          Number
+        ),
+      })
+      .from(summaries)
+      .where(
+        and(
+          isNull(summaries.deletedAt),
+          gte(summaries.updatedAt, previousTrendStart),
+          lt(summaries.updatedAt, trendStart)
+        )
+      )
+      .groupBy(summaries.tone)
 
-    const [previousCost] =
-      selectedTone === "all"
-        ? await tx
-            .select({
-              cost: sql<string>`COALESCE(SUM(${apiUsage.costUsd}), 0)`,
-              tokens:
-                sql<number>`COALESCE(SUM(${apiUsage.inputTokens}) + SUM(${apiUsage.outputTokens}), 0)`.mapWith(
-                  Number
-                ),
-            })
-            .from(apiUsage)
-            .where(and(gte(apiUsage.createdAt, previousTrendStart), lt(apiUsage.createdAt, trendStart)))
-        : await tx
-            .select({
-              cost: sql<string>`COALESCE(SUM(${apiUsage.costUsd}), 0)`,
-              tokens:
-                sql<number>`COALESCE(SUM(${apiUsage.inputTokens}) + SUM(${apiUsage.outputTokens}), 0)`.mapWith(
-                  Number
-                ),
-            })
-            .from(apiUsage)
-            .innerJoin(
-              summaries,
-              and(eq(apiUsage.summaryId, summaries.id), eq(apiUsage.userId, summaries.userId))
-            )
-            .where(
-              and(
-                gte(apiUsage.createdAt, previousTrendStart),
-                lt(apiUsage.createdAt, trendStart),
-                eq(summaries.tone, selectedTone),
-                isNull(summaries.deletedAt)
-              )
-            )
+    const [currentCost] = await tx
+      .select({
+        cost: sql<string>`COALESCE(SUM(${apiUsage.costUsd}), 0)`,
+        tokens:
+          sql<number>`COALESCE(SUM(${apiUsage.inputTokens}) + SUM(${apiUsage.outputTokens}), 0)`.mapWith(
+            Number
+          ),
+      })
+      .from(apiUsage)
+      .where(gte(apiUsage.createdAt, trendStart))
+
+    const [previousCost] = await tx
+      .select({
+        cost: sql<string>`COALESCE(SUM(${apiUsage.costUsd}), 0)`,
+        tokens:
+          sql<number>`COALESCE(SUM(${apiUsage.inputTokens}) + SUM(${apiUsage.outputTokens}), 0)`.mapWith(
+            Number
+          ),
+      })
+      .from(apiUsage)
+      .where(and(gte(apiUsage.createdAt, previousTrendStart), lt(apiUsage.createdAt, trendStart)))
+
+    const currentCostByTone = await tx
+      .select({
+        tone: summaries.tone,
+        cost: sql<string>`COALESCE(SUM(${apiUsage.costUsd}), 0)`,
+        tokens:
+          sql<number>`COALESCE(SUM(${apiUsage.inputTokens}) + SUM(${apiUsage.outputTokens}), 0)`.mapWith(
+            Number
+          ),
+      })
+      .from(apiUsage)
+      .innerJoin(
+        summaries,
+        and(eq(apiUsage.summaryId, summaries.id), eq(apiUsage.userId, summaries.userId))
+      )
+      .where(and(gte(apiUsage.createdAt, trendStart), isNull(summaries.deletedAt)))
+      .groupBy(summaries.tone)
+
+    const previousCostByTone = await tx
+      .select({
+        tone: summaries.tone,
+        cost: sql<string>`COALESCE(SUM(${apiUsage.costUsd}), 0)`,
+        tokens:
+          sql<number>`COALESCE(SUM(${apiUsage.inputTokens}) + SUM(${apiUsage.outputTokens}), 0)`.mapWith(
+            Number
+          ),
+      })
+      .from(apiUsage)
+      .innerJoin(
+        summaries,
+        and(eq(apiUsage.summaryId, summaries.id), eq(apiUsage.userId, summaries.userId))
+      )
+      .where(
+        and(
+          gte(apiUsage.createdAt, previousTrendStart),
+          lt(apiUsage.createdAt, trendStart),
+          isNull(summaries.deletedAt)
+        )
+      )
+      .groupBy(summaries.tone)
 
     const [userBudget] = await tx
       .select({ monthlyBudgetUsd: users.monthlyBudgetUsd })
@@ -456,6 +418,7 @@ export default async function StatsPage({
       lowRatedSummaries,
       dailySummaryRows,
       dailyUsageRows,
+      dailyUsageRowsByTone,
       currentTrend: {
         summaryCount: currentTrend?.summaryCount ?? 0,
         avgRating: currentTrend?.avgRating ?? 0,
@@ -468,6 +431,10 @@ export default async function StatsPage({
         cost: Number(previousCost?.cost ?? "0"),
         tokens: previousCost?.tokens ?? 0,
       },
+      currentTrendByTone,
+      previousTrendByTone,
+      currentCostByTone,
+      previousCostByTone,
       monthlyBudgetUsd: userBudget?.monthlyBudgetUsd
         ? Number(userBudget.monthlyBudgetUsd)
         : Number(process.env.DEFAULT_MONTHLY_BUDGET_USD || "0"),
@@ -482,10 +449,20 @@ export default async function StatsPage({
   const anthropicCost = parseFloat(anthropicUsage?.cost || "0")
   const openaiCost = parseFloat(openaiUsage?.cost || "0")
 
+  const toneKeys: ToneKey[] = ["neutral", "snarky", "enthusiastic", "casual"]
+
   const summaryCountByDay = new Map<string, number>()
+  const summaryCountByDayByTone = new Map<ToneKey, Map<string, number>>(
+    toneKeys.map((tone) => [tone, new Map<string, number>()])
+  )
   for (const row of dailySummaryRows) {
     const prev = summaryCountByDay.get(row.day) ?? 0
     summaryCountByDay.set(row.day, prev + row.count)
+    if (row.tone in TONE_LABELS) {
+      const tone = row.tone as ToneKey
+      const toneMap = summaryCountByDayByTone.get(tone)!
+      toneMap.set(row.day, (toneMap.get(row.day) ?? 0) + row.count)
+    }
   }
 
   const usageByDay = new Map<string, { cost: number; tokens: number }>()
@@ -496,18 +473,17 @@ export default async function StatsPage({
     })
   }
 
-  const summarySeries = dayBuckets.map((bucket) => ({
-    label: bucket.label,
-    value: summaryCountByDay.get(bucket.key) ?? 0,
-  }))
-  const costSeries = dayBuckets.map((bucket) => ({
-    label: bucket.label,
-    value: Number((usageByDay.get(bucket.key)?.cost ?? 0).toFixed(4)),
-  }))
-  const tokenSeries = dayBuckets.map((bucket) => ({
-    label: bucket.label,
-    value: usageByDay.get(bucket.key)?.tokens ?? 0,
-  }))
+  const usageByDayByTone = new Map<ToneKey, Map<string, { cost: number; tokens: number }>>(
+    toneKeys.map((tone) => [tone, new Map<string, { cost: number; tokens: number }>()])
+  )
+  for (const row of dailyUsageRowsByTone) {
+    if (!(row.tone in TONE_LABELS)) continue
+    const tone = row.tone as ToneKey
+    usageByDayByTone.get(tone)!.set(row.day, {
+      cost: Number(row.cost ?? "0"),
+      tokens: (row.inputTokens ?? 0) + (row.outputTokens ?? 0),
+    })
+  }
 
   const daysInMonth = new Date().getDate()
   const totalDaysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
@@ -520,6 +496,126 @@ export default async function StatsPage({
   const costDelta = calculateDelta(currentTrend.cost, previousTrend.cost)
   const tokenDelta = calculateDelta(currentTrend.tokens, previousTrend.tokens)
   const ratingDelta = calculateDelta(currentTrend.avgRating, previousTrend.avgRating)
+
+  const currentSummaryCountByTone = new Map<ToneKey, number>(
+    currentTrendByTone
+      .filter((row) => row.tone in TONE_LABELS)
+      .map((row) => [row.tone as ToneKey, row.summaryCount])
+  )
+  const previousSummaryCountByTone = new Map<ToneKey, number>(
+    previousTrendByTone
+      .filter((row) => row.tone in TONE_LABELS)
+      .map((row) => [row.tone as ToneKey, row.summaryCount])
+  )
+  const currentCostByToneMap = new Map<ToneKey, { cost: number; tokens: number }>(
+    currentCostByTone
+      .filter((row) => row.tone in TONE_LABELS)
+      .map((row) => [
+        row.tone as ToneKey,
+        { cost: Number(row.cost ?? "0"), tokens: row.tokens ?? 0 },
+      ])
+  )
+  const previousCostByToneMap = new Map<ToneKey, { cost: number; tokens: number }>(
+    previousCostByTone
+      .filter((row) => row.tone in TONE_LABELS)
+      .map((row) => [
+        row.tone as ToneKey,
+        { cost: Number(row.cost ?? "0"), tokens: row.tokens ?? 0 },
+      ])
+  )
+
+  const trendSeriesByTone: Record<
+    ToneFilter,
+    {
+      summarySeries: Array<{ label: string; value: number }>
+      costSeries: Array<{ label: string; value: number }>
+      tokenSeries: Array<{ label: string; value: number }>
+      summaryDelta: { text: string; positive: boolean } | null
+      costDelta: { text: string; positive: boolean } | null
+      tokenDelta: { text: string; positive: boolean } | null
+    }
+  > = {
+    all: {
+      summarySeries: dayBuckets.map((bucket) => ({
+        label: bucket.label,
+        value: summaryCountByDay.get(bucket.key) ?? 0,
+      })),
+      costSeries: dayBuckets.map((bucket) => ({
+        label: bucket.label,
+        value: Number((usageByDay.get(bucket.key)?.cost ?? 0).toFixed(4)),
+      })),
+      tokenSeries: dayBuckets.map((bucket) => ({
+        label: bucket.label,
+        value: usageByDay.get(bucket.key)?.tokens ?? 0,
+      })),
+      summaryDelta,
+      costDelta,
+      tokenDelta,
+    },
+    neutral: {
+      summarySeries: [],
+      costSeries: [],
+      tokenSeries: [],
+      summaryDelta: null,
+      costDelta: null,
+      tokenDelta: null,
+    },
+    snarky: {
+      summarySeries: [],
+      costSeries: [],
+      tokenSeries: [],
+      summaryDelta: null,
+      costDelta: null,
+      tokenDelta: null,
+    },
+    enthusiastic: {
+      summarySeries: [],
+      costSeries: [],
+      tokenSeries: [],
+      summaryDelta: null,
+      costDelta: null,
+      tokenDelta: null,
+    },
+    casual: {
+      summarySeries: [],
+      costSeries: [],
+      tokenSeries: [],
+      summaryDelta: null,
+      costDelta: null,
+      tokenDelta: null,
+    },
+  }
+
+  for (const tone of toneKeys) {
+    const summaryMap = summaryCountByDayByTone.get(tone)!
+    const usageMap = usageByDayByTone.get(tone)!
+    trendSeriesByTone[tone] = {
+      summarySeries: dayBuckets.map((bucket) => ({
+        label: bucket.label,
+        value: summaryMap.get(bucket.key) ?? 0,
+      })),
+      costSeries: dayBuckets.map((bucket) => ({
+        label: bucket.label,
+        value: Number((usageMap.get(bucket.key)?.cost ?? 0).toFixed(4)),
+      })),
+      tokenSeries: dayBuckets.map((bucket) => ({
+        label: bucket.label,
+        value: usageMap.get(bucket.key)?.tokens ?? 0,
+      })),
+      summaryDelta: calculateDelta(
+        currentSummaryCountByTone.get(tone) ?? 0,
+        previousSummaryCountByTone.get(tone) ?? 0
+      ),
+      costDelta: calculateDelta(
+        currentCostByToneMap.get(tone)?.cost ?? 0,
+        previousCostByToneMap.get(tone)?.cost ?? 0
+      ),
+      tokenDelta: calculateDelta(
+        currentCostByToneMap.get(tone)?.tokens ?? 0,
+        previousCostByToneMap.get(tone)?.tokens ?? 0
+      ),
+    }
+  }
 
   const toneFilters: Array<{ value: ToneFilter; label: string }> = [
     { value: "all", label: "全体" },
@@ -630,55 +726,7 @@ export default async function StatsPage({
         </div>
       </div>
 
-      <div className="mb-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">30日推移</h2>
-            <p className="text-sm text-slate-500">要約数・コスト・トークンの時系列</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {toneFilters.map((filter) => (
-              <Link
-                key={filter.value}
-                href={filter.value === "all" ? "/stats" : `/stats?tone=${filter.value}`}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  selectedTone === filter.value
-                    ? "bg-slate-900 text-white"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-              >
-                {filter.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-700">要約数 / 日</h3>
-              <TrendDelta value={summaryDelta} />
-            </div>
-            <MiniBarChart data={summarySeries} colorClass="bg-indigo-500" emptyLabel="要約データがありません" />
-          </div>
-
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-700">コスト / 日 (USD)</h3>
-              <TrendDelta value={costDelta} />
-            </div>
-            <MiniBarChart data={costSeries} colorClass="bg-emerald-500" emptyLabel="コストデータがありません" />
-          </div>
-
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-700">トークン / 日</h3>
-              <TrendDelta value={tokenDelta} />
-            </div>
-            <MiniBarChart data={tokenSeries} colorClass="bg-amber-500" emptyLabel="トークンデータがありません" />
-          </div>
-        </div>
-      </div>
+      <TrendSection toneFilters={toneFilters} trendSeriesByTone={trendSeriesByTone} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-8">
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
