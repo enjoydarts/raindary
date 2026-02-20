@@ -3,18 +3,27 @@ import { and, eq, gte, sql } from "drizzle-orm"
 
 /**
  * Anthropic API価格表（2026年2月時点）
- * https://platform.claude.com/docs/en/about-claude/models/overview
+ * https://docs.anthropic.com/en/docs/about-claude/models/overview
  */
 const ANTHROPIC_PRICING = {
-  "claude-sonnet-4-5": {
-    input: 3.0 / 1_000_000, // $3.00 per 1M tokens
+  // --- 現行モデル ---
+  "claude-opus-4-6": {
+    input: 5.0 / 1_000_000,  // $5.00 per 1M tokens
+    output: 25.0 / 1_000_000, // $25.00 per 1M tokens
+  },
+  "claude-sonnet-4-6": {
+    input: 3.0 / 1_000_000,  // $3.00 per 1M tokens
     output: 15.0 / 1_000_000, // $15.00 per 1M tokens
   },
   "claude-haiku-4-5": {
-    input: 1.0 / 1_000_000, // $1.00 per 1M tokens
-    output: 5.0 / 1_000_000, // $5.00 per 1M tokens
+    input: 1.0 / 1_000_000,  // $1.00 per 1M tokens
+    output: 5.0 / 1_000_000,  // $5.00 per 1M tokens
   },
-  // 旧モデル名との互換性（存在する場合）
+  // --- 旧モデル（既存データのコスト表示用） ---
+  "claude-sonnet-4-5": {
+    input: 3.0 / 1_000_000,
+    output: 15.0 / 1_000_000,
+  },
   "claude-3-5-sonnet-20241022": {
     input: 3.0 / 1_000_000,
     output: 15.0 / 1_000_000,

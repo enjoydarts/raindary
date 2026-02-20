@@ -23,10 +23,12 @@ function getAnthropicClient(apiKey: string): Anthropic {
 /**
  * モデル定義
  * 2026年2月時点の最新モデル
+ * https://docs.anthropic.com/en/docs/about-claude/models/overview
  */
 export const MODELS = {
-  HAIKU: "claude-haiku-4-5",
-  SONNET: "claude-sonnet-4-5",
+  HAIKU: "claude-haiku-4-5",   // $1.00 / $5.00 per 1M tokens
+  SONNET: "claude-sonnet-4-6", // $3.00 / $15.00 per 1M tokens
+  OPUS: "claude-opus-4-6",     // $5.00 / $25.00 per 1M tokens
 } as const
 
 export type ModelType = (typeof MODELS)[keyof typeof MODELS]
