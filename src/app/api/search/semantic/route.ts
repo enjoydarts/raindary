@@ -5,9 +5,9 @@ import { summaries, raindrops, users } from "@/db/schema"
 import { eq, and, isNull, sql } from "drizzle-orm"
 import { generateEmbedding } from "@/lib/embeddings"
 import { decrypt } from "@/lib/crypto"
+import { cacheGet, cacheSet } from "@/lib/redis"
 
-const QUERY_CACHE_TTL_MS = 1000 * 60 * 30
-const queryEmbeddingCache = new Map<string, { embedding: number[]; expiresAt: number }>()
+const QUERY_EMBEDDING_TTL_SEC = 60 * 30 // 30分
 
 /**
  * クエリに対するスニペットを抽出する
@@ -64,19 +64,17 @@ export async function GET(request: NextRequest) {
 
     const openaiApiKey = decrypt(user.openaiApiKeyEncrypted)
 
-    // クエリの埋め込みベクトルを生成（キャッシュ利用）
+    // クエリの埋め込みベクトルを生成（Redisキャッシュ利用）
     const normalizedQuery = query.trim().toLowerCase()
-    const cached = queryEmbeddingCache.get(normalizedQuery)
+    const cacheKey = `raindary:emb:${normalizedQuery}`
     let queryEmbedding: number[]
 
-    if (cached && cached.expiresAt > Date.now()) {
-      queryEmbedding = cached.embedding
+    const cachedEmbedding = await cacheGet<number[]>(cacheKey)
+    if (cachedEmbedding) {
+      queryEmbedding = cachedEmbedding
     } else {
       queryEmbedding = await generateEmbedding(query.trim(), { apiKey: openaiApiKey })
-      queryEmbeddingCache.set(normalizedQuery, {
-        embedding: queryEmbedding,
-        expiresAt: Date.now() + QUERY_CACHE_TTL_MS,
-      })
+      await cacheSet(cacheKey, queryEmbedding, QUERY_EMBEDDING_TTL_SEC)
     }
 
     if (!queryEmbedding || queryEmbedding.length === 0) {

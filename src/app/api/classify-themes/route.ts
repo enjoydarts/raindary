@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { inngest } from "@/inngest/client"
+import { cacheDel } from "@/lib/redis"
 
 /**
  * テーマ自動分類をトリガー
@@ -27,6 +28,9 @@ export async function POST(request: Request) {
     const { searchParams } = new URL(request.url)
     const force = searchParams.get("force") === "true"
     console.log("[classify-themes-api] Force mode:", force)
+
+    // テーマが変わるのでキャッシュを無効化
+    await cacheDel(`raindary:themes:${userId}`)
 
     // Inngestイベントを送信
     console.log("[classify-themes-api] Sending Inngest event...")

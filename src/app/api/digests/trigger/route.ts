@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { inngest } from "@/inngest/client"
+import { acquireLock } from "@/lib/redis"
+
+const DIGEST_LOCK_TTL_SEC = 60 * 5 // 5分
 
 /**
  * 週次ダイジェストを手動でトリガー
@@ -22,6 +25,16 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = session.user.id
+
+    // 同じユーザーの重複実行を防止
+    const lockKey = `raindary:lock:digest:${userId}`
+    const locked = await acquireLock(lockKey, DIGEST_LOCK_TTL_SEC)
+    if (!locked) {
+      return NextResponse.json(
+        { error: { code: "ALREADY_RUNNING", message: "Digest generation is already in progress" } },
+        { status: 409 }
+      )
+    }
 
     let periodStart: string | undefined
     try {

@@ -4,6 +4,9 @@ import { inngest } from "@/inngest/client"
 import { db } from "@/db"
 import { users } from "@/db/schema"
 import { eq } from "drizzle-orm"
+import { acquireLock } from "@/lib/redis"
+
+const IMPORT_LOCK_TTL_SEC = 60 * 5 // 5分
 
 /**
  * Raindrop同期を手動でトリガー
@@ -22,6 +25,16 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = session.user.id
+
+    // 同じユーザーの重複実行を防止
+    const lockKey = `raindary:lock:import:${userId}`
+    const locked = await acquireLock(lockKey, IMPORT_LOCK_TTL_SEC)
+    if (!locked) {
+      return NextResponse.json(
+        { error: { code: "ALREADY_RUNNING", message: "Import is already in progress" } },
+        { status: 409 }
+      )
+    }
 
     const [user] = await db
       .select({ defaultImportCollectionId: users.defaultImportCollectionId })
